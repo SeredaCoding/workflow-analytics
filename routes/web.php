@@ -2,12 +2,16 @@
 
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MailReportController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');
 Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
+Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
 Route::prefix('api')->group(function () {
     Route::post('/activities/start', [ActivityController::class, 'start'])->name('api.activities.start');
@@ -20,6 +24,7 @@ Route::prefix('api')->group(function () {
 
     Route::get('/stats/daily', [StatsController::class, 'daily'])->name('api.stats.daily');
     Route::get('/stats/heatmap', [StatsController::class, 'heatmap'])->name('api.stats.heatmap');
+    Route::post('/reports/send-monthly', [MailReportController::class, 'send'])->name('api.reports.send-monthly');
 });
 
 Route::resource('activities', ActivityController::class)->except(['index', 'show']);

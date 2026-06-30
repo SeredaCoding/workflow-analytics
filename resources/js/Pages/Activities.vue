@@ -1,70 +1,250 @@
 <template>
     <AppLayout :in-progress="inProgress">
-        <div class="max-w-6xl mx-auto space-y-6">
+        <div class="max-w-7xl mx-auto space-y-6">
             <div>
                 <h2 class="text-2xl font-bold">Atividades</h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Todas as atividades registradas</p>
             </div>
 
             <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-gray-100 dark:border-gray-800 text-left text-sm text-gray-500">
-                            <th class="px-5 py-3 font-medium">Data</th>
-                            <th class="px-5 py-3 font-medium">Título</th>
-                            <th class="px-5 py-3 font-medium">Categoria</th>
-                            <th class="px-5 py-3 font-medium">Projeto</th>
-                            <th class="px-5 py-3 font-medium">Duração</th>
-                            <th class="px-5 py-3 font-medium">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="activity in activities.data" :key="activity.id"
-                            class="border-b border-gray-50 dark:border-gray-800/50 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                            <td class="px-5 py-3 text-gray-500 font-mono">{{ formatDate(activity.started_at) }}</td>
-                            <td class="px-5 py-3 font-medium">
-                                <div class="flex items-center gap-2">
-                                    {{ activity.title }}
-                                    <span v-if="activity.type === 'interruption'"
-                                        class="text-xs px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400">
-                                        Interrupção
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-100 dark:border-gray-800 text-left text-sm text-gray-500">
+                                <th class="px-4 py-3 font-medium whitespace-nowrap">Data</th>
+                                <th class="px-4 py-3 font-medium">Título</th>
+                                <th class="px-4 py-3 font-medium">Descrição</th>
+                                <th class="px-4 py-3 font-medium">Categoria</th>
+                                <th class="px-4 py-3 font-medium">Projeto</th>
+                                <th class="px-4 py-3 font-medium whitespace-nowrap">Prioridade</th>
+                                <th class="px-4 py-3 font-medium whitespace-nowrap">Energia</th>
+                                <th class="px-4 py-3 font-medium whitespace-nowrap">Duração</th>
+                                <th class="px-4 py-3 font-medium">Status</th>
+                                <th class="px-4 py-3 font-medium w-20">Ações</th>
+                            </tr>
+                            <tr class="border-b border-gray-100 dark:border-gray-800">
+                                <th class="px-4 py-2">
+                                    <input v-model="filters.date_from" type="date" @change="applyFilters"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white" />
+                                </th>
+                                <th class="px-4 py-2">
+                                    <input v-model="filters.search" type="text" placeholder="Buscar..."
+                                        @input="onSearchInput"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
+                                </th>
+                                <th class="px-4 py-2"></th>
+                                <th class="px-4 py-2">
+                                    <select v-model="filters.category_id" @change="applyFilters"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white">
+                                        <option value="">Todas</option>
+                                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                                    </select>
+                                </th>
+                                <th class="px-4 py-2">
+                                    <select v-model="filters.project_id" @change="applyFilters"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white">
+                                        <option value="">Todos</option>
+                                        <option v-for="proj in projects" :key="proj.id" :value="proj.id">{{ proj.name }}</option>
+                                    </select>
+                                </th>
+                                <th class="px-4 py-2">
+                                    <input v-model="filters.description" type="text" placeholder="Buscar na descrição..."
+                                        @input="onSearchInput"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
+                                </th>
+                                <th class="px-4 py-2">
+                                    <select v-model="filters.priority" @change="applyFilters"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white">
+                                        <option value="">Todas</option>
+                                        <option value="low">Baixa</option>
+                                        <option value="medium">Média</option>
+                                        <option value="high">Alta</option>
+                                        <option value="critical">Crítica</option>
+                                    </select>
+                                </th>
+                                <th class="px-4 py-2">
+                                    <select v-model="filters.energy_level" @change="applyFilters"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white">
+                                        <option value="">Todos</option>
+                                        <option :value="1">1</option>
+                                        <option :value="2">2</option>
+                                        <option :value="3">3</option>
+                                        <option :value="4">4</option>
+                                        <option :value="5">5</option>
+                                    </select>
+                                </th>
+                                <th class="px-4 py-2">
+                                    <select v-model="filters.status" @change="applyFilters"
+                                        class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white">
+                                        <option value="">Todos</option>
+                                        <option value="in_progress">Em andamento</option>
+                                        <option value="paused">Pausado</option>
+                                        <option value="completed">Concluído</option>
+                                    </select>
+                                </th>
+                                <th class="px-4 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="activity in activities.data" :key="activity.id"
+                                class="border-b border-gray-50 dark:border-gray-800/50 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                                <td class="px-4 py-3 text-gray-500 font-mono whitespace-nowrap">{{ formatDate(activity.started_at) }}</td>
+                                <td class="px-4 py-3 font-medium max-w-[200px]">
+                                    <div class="flex items-center gap-2 truncate">
+                                        {{ activity.title }}
+                                        <span v-if="activity.type === 'interruption'"
+                                            class="shrink-0 text-xs px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400">
+                                            Int
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 max-w-[200px]">
+                                    <span v-if="activity.description" :title="activity.description"
+                                        class="text-gray-500 text-xs block truncate">
+                                        {{ truncate(activity.description, 50) }}
                                     </span>
-                                </div>
-                            </td>
-                            <td class="px-5 py-3">
-                                <span class="inline-flex items-center gap-1.5">
-                                    <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: activity.category?.color }" />
-                                    {{ activity.category?.name }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-3 text-gray-500">{{ activity.project?.name || '-' }}</td>
-                            <td class="px-5 py-3 font-mono text-gray-500">{{ formatDuration(activity.duration_minutes) }}</td>
-                            <td class="px-5 py-3">
-                                <span class="text-xs px-2 py-1 rounded-full"
-                                    :class="statusClass(activity.status)">
-                                    {{ statusLabel(activity.status) }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr v-if="activities.data?.length === 0">
-                            <td colspan="6" class="px-5 py-12 text-center text-gray-500">
-                                Nenhuma atividade registrada.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                    <span v-else class="text-gray-400 text-xs">—</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: activity.category?.color }" />
+                                        {{ activity.category?.name }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ activity.project?.name || '-' }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span v-if="activity.priority" class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                        :class="priorityClass(activity.priority)">
+                                        {{ priorityLabel(activity.priority) }}
+                                    </span>
+                                    <span v-else class="text-gray-400 text-xs">—</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span v-if="activity.energy_level" class="text-xs text-gray-500 font-mono">
+                                        {{ '●'.repeat(activity.energy_level) }}{{ '○'.repeat(5 - activity.energy_level) }}
+                                    </span>
+                                    <span v-else class="text-gray-400 text-xs">—</span>
+                                </td>
+                                <td class="px-4 py-3 font-mono text-gray-500 whitespace-nowrap">{{ formatDuration(activity.duration_minutes) }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="text-xs px-2 py-1 rounded-full whitespace-nowrap"
+                                        :class="statusClass(activity.status)">
+                                        {{ statusLabel(activity.status) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="flex items-center gap-1">
+                                        <button @click="edit(activity)"
+                                            class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                                            </svg>
+                                        </button>
+                                        <button @click="confirmDelete(activity)"
+                                            class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+                                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="activities.data?.length === 0">
+                                <td colspan="10" class="px-4 py-12 text-center text-gray-500">
+                                    Nenhuma atividade encontrada.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div v-if="activities.total > activities.per_page" class="flex justify-center gap-2">
+                <Link v-for="link in activities.links" :key="link.label"
+                    :href="link.url || '#'"
+                    v-html="link.label"
+                    class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
+                    :class="link.active
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500'" />
             </div>
         </div>
+
+        <EditActivityModal v-if="editingActivity" :activity="editingActivity" @close="closeEdit" @saved="closeEdit" />
+        <ConfirmDeleteModal v-if="deletingActivity" :activity="deletingActivity" @close="deletingActivity = null" @confirm="(e) => doDelete(e.mode)" />
     </AppLayout>
 </template>
 
 <script setup>
+import { ref, reactive } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EditActivityModal from '@/Components/EditActivityModal.vue'
+import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
+
+const page = usePage()
+const categories = page.props.categories
+const projects = page.props.projects
 
 const props = defineProps({
     activities: Object,
     inProgress: Object,
+    filters: Object,
 })
+
+const filters = reactive({
+    search: props.filters?.search || '',
+    category_id: props.filters?.category_id || '',
+    project_id: props.filters?.project_id || '',
+    status: props.filters?.status || '',
+    date_from: props.filters?.date_from || '',
+    description: props.filters?.description || '',
+    priority: props.filters?.priority || '',
+    energy_level: props.filters?.energy_level || '',
+})
+
+let searchTimeout = null
+
+const editingActivity = ref(null)
+const deletingActivity = ref(null)
+
+function edit(activity) {
+    editingActivity.value = activity
+}
+
+function closeEdit() {
+    editingActivity.value = null
+}
+
+function confirmDelete(activity) {
+    deletingActivity.value = activity
+}
+
+function doDelete(mode) {
+    if (!deletingActivity.value) return
+    router.delete(`/activities/${deletingActivity.value.id}?mode=${mode}`, {
+        preserveState: false,
+        onFinish: () => { deletingActivity.value = null },
+    })
+}
+
+function applyFilters() {
+    const params = {}
+    for (const [key, value] of Object.entries(filters)) {
+        if (value) params[key] = value
+    }
+    router.get('/activities', params, { preserveState: true, preserveScroll: true })
+}
+
+function onSearchInput() {
+    clearTimeout(searchTimeout)
+    searchTimeout = setTimeout(applyFilters, 300)
+}
+
+function truncate(text, max) {
+    if (!text) return ''
+    return text.length > max ? text.slice(0, max) + '…' : text
+}
 
 function formatDate(date) {
     if (!date) return '-'
@@ -72,11 +252,31 @@ function formatDate(date) {
 }
 
 function formatDuration(minutes) {
-    if (!minutes) return '-'
+    if (!minutes && minutes !== 0) return '-'
     if (minutes < 60) return `${minutes}m`
     const h = Math.floor(minutes / 60)
     const m = minutes % 60
     return `${h}h${m > 0 ? m + 'm' : ''}`
+}
+
+function priorityClass(priority) {
+    const map = {
+        low: 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400',
+        medium: 'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400',
+        high: 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400',
+        critical: 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400',
+    }
+    return map[priority] || ''
+}
+
+function priorityLabel(priority) {
+    const map = {
+        low: 'Baixa',
+        medium: 'Média',
+        high: 'Alta',
+        critical: 'Crítica',
+    }
+    return map[priority] || priority
 }
 
 function statusClass(status) {

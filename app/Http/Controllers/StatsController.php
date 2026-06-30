@@ -11,9 +11,21 @@ class StatsController extends Controller
 {
     public function index()
     {
+        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+
         return Inertia::render('Stats', [
             'monthly' => $this->monthlyData(),
             'categoryDistribution' => $this->categoryDistribution(),
+            'inProgress' => $inProgress ? [
+                'id' => $inProgress->id,
+                'title' => $inProgress->title,
+                'type' => $inProgress->type,
+                'parent_id' => $inProgress->parent_id,
+                'category' => $inProgress->category?->name,
+                'category_color' => $inProgress->category?->color,
+                'project' => $inProgress->project?->name,
+                'started_at' => $inProgress->started_at->toIso8601String(),
+            ] : null,
         ]);
     }
 

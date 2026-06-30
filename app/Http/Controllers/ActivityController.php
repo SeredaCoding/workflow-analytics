@@ -9,14 +9,53 @@ use Inertia\Inertia;
 
 class ActivityController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $activities = Activity::with(['category', 'project', 'parent'])
-            ->orderBy('started_at', 'desc')
-            ->paginate(50);
+        $query = Activity::with(['category', 'project', 'parent', 'children']);
+
+        if ($search = $request->input('search')) {
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        if ($categoryId = $request->input('category_id')) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($projectId = $request->input('project_id')) {
+            $query->where('project_id', $projectId);
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('started_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('started_at', '<=', $dateTo);
+        }
+
+        if ($description = $request->input('description')) {
+            $query->where('description', 'like', "%{$description}%");
+        }
+
+        if ($priority = $request->input('priority')) {
+            $query->where('priority', $priority);
+        }
+
+        if ($energyLevel = $request->input('energy_level')) {
+            $query->where('energy_level', $energyLevel);
+        }
+
+        $activities = $query->orderBy('started_at', 'desc')
+            ->paginate(50)
+            ->withQueryString();
 
         return Inertia::render('Activities', [
             'activities' => $activities,
+            'filters' => $request->only(['search', 'category_id', 'project_id', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level']),
         ]);
     }
 
@@ -229,16 +268,46 @@ class ActivityController extends Controller
             'is_planned' => 'boolean',
             'energy_level' => 'nullable|integer|min:1|max:5',
             'notes' => 'nullable|string',
+            'started_at' => 'nullable|date',
+            'ended_at' => 'nullable|date',
         ]);
+
+        if ($request->has('started_at')) {
+            $start = Carbon::parse($validated['started_at']);
+            $validated['started_at'] = $start;
+
+            if ($request->has('ended_at')) {
+                $end = Carbon::parse($validated['ended_at']);
+                $validated['ended_at'] = $end;
+                $validated['duration_minutes'] = $start->diffInMinutes($end);
+            }
+        }
 
         $activity->update($validated);
 
         return redirect()->back();
     }
 
-    public function destroy(Activity $activity)
+    public function destroy(Request $request, Activity $activity)
     {
+        $mode = $request->input('mode', 'cascade');
+        $affected = 0;
+
+        if ($activity->children()->exists()) {
+            if ($mode === 'convert') {
+                $affected = $activity->children()->count();
+                $activity->children()->update([
+                    'type' => 'activity',
+                    'parent_id' => null,
+                ]);
+            } else {
+                $affected = $activity->children()->count();
+                $activity->children()->delete();
+            }
+        }
+
         $activity->delete();
+
         return redirect()->back();
     }
 }

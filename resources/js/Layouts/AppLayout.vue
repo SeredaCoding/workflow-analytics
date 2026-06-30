@@ -44,16 +44,21 @@
 
         <ManualEntryModal v-if="showManualEntry" :categories="categories" :projects="projects"
             @close="showManualEntry = false" @registered="onRegistered" />
+
+        <CommandPalette v-if="showCommandPalette" @close="showCommandPalette = false"
+            @quick-start="showQuickStart = true" @manual-entry="showManualEntry = true"
+            @interrupt="showInterruption = true" />
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import TimerBar from '@/Components/TimerBar.vue'
 import QuickStartModal from '@/Components/QuickStartModal.vue'
 import InterruptionModal from '@/Components/InterruptionModal.vue'
 import ManualEntryModal from '@/Components/ManualEntryModal.vue'
+import CommandPalette from '@/Components/CommandPalette.vue'
 
 const page = usePage()
 
@@ -67,11 +72,23 @@ const projects = computed(() => page.props.projects)
 const showQuickStart = ref(false)
 const showInterruption = ref(false)
 const showManualEntry = ref(false)
+const showCommandPalette = ref(false)
+
+function onKeydown(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        showCommandPalette.value = !showCommandPalette.value
+    }
+}
+
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
 const navItems = [
     { label: 'Dashboard', href: '/', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
     { label: 'Atividades', href: '/activities', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>' },
     { label: 'Estatísticas', href: '/stats', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+    { label: 'Configurações', href: '/settings', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>' },
 ]
 
 function onStarted() {
