@@ -1,0 +1,85 @@
+<template>
+    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/50" @click.self="$emit('close')">
+        <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-800">
+                <input ref="titleInput" v-model="form.title"
+                    placeholder="O que você vai fazer?"
+                    class="w-full text-lg bg-transparent border-none outline-none placeholder-gray-400"
+                    @keydown.enter="submit" @keydown.escape="$emit('close')" />
+            </div>
+
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-2">Categoria</label>
+                    <div class="flex flex-wrap gap-2">
+                    <button v-for="cat in categories" :key="cat.id" @click="form.category_id = cat.id"
+                        class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
+                        :class="form.category_id === cat.id
+                            ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
+                        {{ cat.name }}
+                    </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-2">Projeto <span class="text-gray-400">(opcional)</span></label>
+                    <div class="flex flex-wrap gap-2">
+                    <button v-for="proj in projects" :key="proj.id" @click="form.project_id = form.project_id === proj.id ? null : proj.id"
+                        class="px-3 py-1 text-xs rounded-full border transition-colors"
+                        :class="form.project_id === proj.id
+                            ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
+                        {{ proj.name }}
+                    </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+                <button @click="$emit('close')" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    Cancelar
+                </button>
+                <button @click="submit"
+                    class="px-4 py-2 text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                    Iniciar
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+import { router } from '@inertiajs/vue3'
+
+const props = defineProps({
+    categories: Array,
+    projects: Array,
+})
+
+const emit = defineEmits(['close', 'started'])
+
+const titleInput = ref(null)
+const form = reactive({
+    title: '',
+    category_id: props.categories?.[0]?.id || null,
+    project_id: null,
+})
+
+function submit() {
+    if (!form.title.trim() || !form.category_id) return
+    router.post('/api/activities/start', {
+        title: form.title.trim(),
+        category_id: form.category_id,
+        project_id: form.project_id,
+    }, {
+        preserveState: false,
+        onSuccess: () => emit('started'),
+    })
+}
+
+onMounted(() => {
+    titleInput.value?.focus()
+})
+</script>
