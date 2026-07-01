@@ -49,15 +49,20 @@ class ActivityController extends Controller
             $query->where('energy_level', $energyLevel);
         }
 
+        $perPage = $request->input('per_page', 50);
+        if (!in_array((int) $perPage, [5, 10, 20, 50, 100])) {
+            $perPage = 50;
+        }
+
         $activities = $query->orderBy('started_at', 'desc')
-            ->paginate(50)
+            ->paginate((int) $perPage)
             ->withQueryString();
 
         $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
         return Inertia::render('Activities', [
             'activities' => $activities,
-            'filters' => $request->only(['search', 'category_id', 'project_id', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level']),
+            'filters' => $request->only(['search', 'category_id', 'project_id', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level', 'per_page']),
             'inProgress' => $inProgress ? [
                 'id' => $inProgress->id,
                 'title' => $inProgress->title,

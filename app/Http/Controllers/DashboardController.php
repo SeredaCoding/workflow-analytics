@@ -23,9 +23,11 @@ class DashboardController extends Controller
 
         $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
-        $timeline = Activity::whereDate('started_at', $today)
+        $threeDaysAgo = today()->subDays(2);
+
+        $timeline = Activity::whereDate('started_at', '>=', $threeDaysAgo)
             ->with(['category', 'project'])
-            ->orderBy('started_at')
+            ->orderBy('started_at', 'desc')
             ->get()
             ->map(fn($a) => [
                 'id' => $a->id,
@@ -39,6 +41,7 @@ class DashboardController extends Controller
                 'ended_at' => $a->ended_at?->toIso8601String(),
                 'duration' => $a->duration_minutes,
                 'status' => $a->status,
+                'date' => $a->started_at->format('Y-m-d'),
             ]);
 
         return Inertia::render('Dashboard', [

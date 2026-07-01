@@ -1,6 +1,6 @@
 <template>
     <AppLayout :in-progress="inProgress">
-        <div class="max-w-7xl mx-auto space-y-6">
+        <div class="space-y-6">
             <div>
                 <h2 class="text-2xl font-bold">Atividades</h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Todas as atividades registradas</p>
@@ -11,7 +11,7 @@
                     <table class="w-full">
                         <thead>
                             <tr class="border-b border-gray-100 dark:border-gray-800 text-left text-sm text-gray-500">
-                                <th class="px-4 py-3 font-medium whitespace-nowrap">Data</th>
+                                <th class="px-4 py-3 font-medium whitespace-nowrap">Início</th>
                                 <th class="px-4 py-3 font-medium">Título</th>
                                 <th class="px-4 py-3 font-medium">Descrição</th>
                                 <th class="px-4 py-3 font-medium">Categoria</th>
@@ -90,8 +90,8 @@
                                 class="border-b border-gray-50 dark:border-gray-800/50 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/30">
                                 <td class="px-4 py-3 text-gray-500 font-mono whitespace-nowrap">{{ formatDate(activity.started_at) }}</td>
                                 <td class="px-4 py-3 font-medium max-w-[200px]">
-                                    <div class="flex items-center gap-2 truncate">
-                                        {{ activity.title }}
+                                    <div class="flex items-center gap-2" :title="activity.title">
+                                        {{ truncate(activity.title, 24) }}
                                         <span v-if="activity.type === 'interruption'"
                                             class="shrink-0 text-xs px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400">
                                             Int
@@ -159,14 +159,27 @@
                 </div>
             </div>
 
-            <div v-if="activities.total > activities.per_page" class="flex justify-center gap-2">
-                <Link v-for="link in activities.links" :key="link.label"
-                    :href="link.url || '#'"
-                    v-html="link.label"
-                    class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
-                    :class="link.active
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500'" />
+            <div class="flex items-center justify-between px-1">
+                <div class="flex items-center gap-2 text-sm text-gray-500">
+                    <span class="hidden sm:inline">Por página:</span>
+                    <select v-model="filters.per_page" @change="applyFilters"
+                        class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div v-if="activities.total > activities.per_page" class="flex gap-2">
+                    <Link v-for="link in activities.links" :key="link.label"
+                        :href="link.url || '#'"
+                        v-html="link.label"
+                        class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
+                        :class="link.active
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500'" />
+                </div>
             </div>
         </div>
 
@@ -201,6 +214,7 @@ const filters = reactive({
     description: props.filters?.description || '',
     priority: props.filters?.priority || '',
     energy_level: props.filters?.energy_level || '',
+    per_page: props.filters?.per_page || '50',
 })
 
 let searchTimeout = null
@@ -248,7 +262,7 @@ function truncate(text, max) {
 
 function formatDate(date) {
     if (!date) return '-'
-    return new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    return new Date(date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 function formatDuration(minutes) {
