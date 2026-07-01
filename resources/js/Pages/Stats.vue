@@ -1,9 +1,24 @@
 <template>
     <AppLayout :in-progress="inProgress">
         <div class="max-w-6xl mx-auto space-y-8">
-            <div>
-                <h2 class="text-2xl font-bold">Estatísticas</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Visão geral do mês</p>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold">Estatísticas</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Visão geral do período</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button @click="prevMonth"
+                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
+                        title="Mês anterior">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <span class="text-sm font-semibold min-w-[140px] text-center select-none">{{ monthLabel }}</span>
+                    <button @click="nextMonth"
+                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
+                        title="Próximo mês">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -11,6 +26,22 @@
                 <StatCard label="Interrupções" :value="monthly.interruptions" unit="" color="red" />
                 <StatCard label="Méd. Foco" :value="monthly.avg_focus_minutes" unit="min" color="green" />
                 <StatCard label="Reuniões" :value="meetingHours" unit="h" color="purple" />
+            </div>
+
+            <div class="flex items-center justify-between bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+                <div>
+                    <h3 class="text-sm font-semibold">Relatório Mensal</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Envie o resumo do mês por e-mail para seu destinatário</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span v-if="statusMessage" class="text-sm" :class="statusError ? 'text-red-500' : 'text-green-500'">
+                        {{ statusMessage }}
+                    </span>
+                    <button @click="sendReport" :disabled="sending"
+                        class="px-4 py-2 text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50">
+                        {{ sending ? 'Enviando...' : 'Enviar Relatório' }}
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -36,20 +67,19 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-between bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
-                <div>
-                    <h3 class="text-sm font-semibold">Relatório Mensal</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Envie o resumo do mês por e-mail para seu chefe</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span v-if="statusMessage" class="text-sm" :class="statusError ? 'text-red-500' : 'text-green-500'">
-                        {{ statusMessage }}
-                    </span>
-                    <button @click="sendReport" :disabled="sending"
-                        class="px-4 py-2 text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50">
-                        {{ sending ? 'Enviando...' : 'Enviar Relatório' }}
-                    </button>
-                </div>
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 overflow-x-auto">
+                <h3 class="text-sm font-medium text-gray-500 mb-4">Mês</h3>
+                <div v-html="dailyBreakdownHtml" />
+            </div>
+
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 overflow-x-auto">
+                <h3 class="text-sm font-medium text-gray-500 mb-4">Resumo Semanal</h3>
+                <div v-html="weeklySummaryHtml" />
+            </div>
+
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 overflow-x-auto">
+                <h3 class="text-sm font-medium text-gray-500 mb-4">Top 5 Atividades</h3>
+                <div v-html="topActivitiesHtml" />
             </div>
         </div>
     </AppLayout>
@@ -84,6 +114,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { router } from '@inertiajs/vue3'
 import { Doughnut, Bar } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -92,12 +123,34 @@ import StatCard from '@/Components/StatCard.vue'
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
 const props = defineProps({
+    month: String,
     monthly: Object,
     categoryDistribution: Array,
+    dailyBreakdownHtml: String,
+    weeklySummaryHtml: String,
+    topActivitiesHtml: String,
     inProgress: Object,
 })
 
 const weeklyData = ref([])
+
+const currentMonth = ref(props.month || new Date().toISOString().slice(0, 7))
+const monthLabel = computed(() => {
+    const [y, m] = currentMonth.value.split('-').map(Number)
+    const date = new Date(y, m - 1)
+    return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+})
+
+function goMonth(delta) {
+    const [y, m] = currentMonth.value.split('-').map(Number)
+    const d = new Date(y, m - 1 + delta, 1)
+    const ym = d.toISOString().slice(0, 7)
+    currentMonth.value = ym
+    router.get('/stats', { month: ym }, { preserveState: true, preserveScroll: true })
+}
+
+function prevMonth() { goMonth(-1) }
+function nextMonth() { goMonth(1) }
 
 const meetingHours = computed(() => {
     if (!props.monthly?.meeting_minutes) return '0.0'
@@ -238,7 +291,7 @@ async function doSend(includeInProgress) {
         const res = await fetch('/api/reports/send-monthly', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ include_in_progress: includeInProgress }),
+            body: JSON.stringify({ include_in_progress: includeInProgress, month: currentMonth.value }),
         })
         const data = await res.json()
         if (data.success) {
@@ -267,7 +320,8 @@ function formatDuration(minutes) {
 
 onMounted(async () => {
     try {
-        const res = await fetch('/api/stats/daily')
+        const monthParam = props.month ? `?month=${props.month}` : ''
+        const res = await fetch(`/api/stats/daily${monthParam}`)
         weeklyData.value = await res.json()
     } catch (e) {
         console.error('Failed to load weekly data', e)

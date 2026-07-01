@@ -25,6 +25,10 @@ class HandleInertiaRequests extends Middleware
             ],
             'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
             'projects' => Project::where('is_active', true)->get(),
+            'flash' => [
+                'success' => session('success'),
+                'error' => session('error'),
+            ],
         ];
     }
 }

@@ -3,19 +3,37 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Services\ReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class StatsController extends Controller
 {
-    public function index()
+    public function __construct(
+        private ReportService $reportService,
+    ) {}
+
+    public function index(Request $request)
     {
+        $date = $this->parseMonth($request->input('month'));
+
+        $monthly = $this->reportService->monthlyData(false, $date);
+        $categoryDistribution = $this->reportService->categoryDistribution(false, $date);
+        $dailyBreakdown = $this->reportService->dailyBreakdown(false, $date);
+        $topActivities = $this->reportService->topActivities(false, $date);
+
+        $totalMinutes = $monthly['total_minutes'] ?: 1;
+
         $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
         return Inertia::render('Stats', [
-            'monthly' => $this->monthlyData(),
-            'categoryDistribution' => $this->categoryDistribution(),
+            'month' => $date->format('Y-m'),
+            'monthly' => $monthly,
+            'categoryDistribution' => $categoryDistribution,
+            'dailyBreakdownHtml' => $this->reportService->buildDailyHtml($dailyBreakdown, true),
+            'weeklySummaryHtml' => $this->reportService->buildWeeklyHtml($dailyBreakdown, true, $date),
+            'topActivitiesHtml' => $this->reportService->buildTopActivitiesHtml($topActivities, $totalMinutes, true),
             'inProgress' => $inProgress ? [
                 'id' => $inProgress->id,
                 'title' => $inProgress->title,
@@ -29,15 +47,40 @@ class StatsController extends Controller
         ]);
     }
 
-    public function daily()
+    public function yearly()
     {
-        $days = collect(range(6, 0))->map(function ($i) {
-            $date = today()->subDays($i);
+        $months = collect(range(0, 11))->map(function ($i) {
+            $date = now()->subMonths(11 - $i);
+            $data = $this->reportService->monthlyData(false, $date);
+            return [
+                'month' => $date->translatedFormat('M/Y'),
+                'total_minutes' => $data['total_minutes'],
+                'total_hours' => $data['total_hours'],
+                'interruptions' => $data['interruptions'],
+            ];
+        });
+
+        return response()->json($months);
+    }
+
+    private function parseMonth(?string $month): Carbon
+    {
+        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            return Carbon::parse($month . '-01');
+        }
+        return now();
+    }
+
+    public function daily(Request $request)
+    {
+        $ref = $this->parseMonth($request->input('month'))->copy()->endOfMonth()->min(now());
+        $days = collect(range(6, 0))->map(function ($i) use ($ref) {
+            $date = $ref->copy()->subDays($i);
             $activities = Activity::whereDate('started_at', $date)->get();
 
             return [
                 'date' => $date->format('Y-m-d'),
-                'label' => $date->format('D'),
+                'label' => $date->translatedFormat('D'),
                 'total_minutes' => $activities->sum('duration_minutes'),
                 'interruptions' => $activities->where('type', 'interruption')->count(),
                 'development_minutes' => $activities->filter(fn($a) => $a->category?->type === 'development')->sum('duration_minutes'),
@@ -46,41 +89,6 @@ class StatsController extends Controller
         });
 
         return response()->json($days);
-    }
-
-    public function monthlyData()
-    {
-        $startOfMonth = now()->startOfMonth();
-        $activities = Activity::where('started_at', '>=', $startOfMonth)->get();
-
-        return [
-            'total_minutes' => $activities->sum('duration_minutes'),
-            'total_hours' => round($activities->sum('duration_minutes') / 60, 1),
-            'interruptions' => $activities->where('type', 'interruption')->count(),
-            'development_minutes' => $activities->filter(fn($a) => $a->category?->type === 'development')->sum('duration_minutes'),
-            'support_minutes' => $activities->filter(fn($a) => $a->category?->type === 'support')->sum('duration_minutes'),
-            'meeting_minutes' => $activities->filter(fn($a) => $a->category?->type === 'meeting')->sum('duration_minutes'),
-            'avg_focus_minutes' => round($activities->where('type', 'activity')->whereNotNull('duration_minutes')->avg('duration_minutes') ?? 0),
-        ];
-    }
-
-    public function categoryDistribution()
-    {
-        $startOfMonth = now()->startOfMonth();
-        $activities = Activity::where('started_at', '>=', $startOfMonth)
-            ->with('category')
-            ->get()
-            ->groupBy('category.name')
-            ->map(function ($items, $category) {
-                return [
-                    'name' => $category ?: 'Sem categoria',
-                    'minutes' => $items->sum('duration_minutes'),
-                    'count' => $items->count(),
-                ];
-            })
-            ->values();
-
-        return $activities;
     }
 
     public function heatmap()

@@ -23,6 +23,7 @@ Route::prefix('api')->group(function () {
     Route::post('/activities/{activity}/resolve-interruption', [ActivityController::class, 'resolveInterruption'])->name('api.activities.resolve-interruption');
 
     Route::get('/stats/daily', [StatsController::class, 'daily'])->name('api.stats.daily');
+    Route::get('/stats/yearly', [StatsController::class, 'yearly'])->name('api.stats.yearly');
     Route::get('/stats/heatmap', [StatsController::class, 'heatmap'])->name('api.stats.heatmap');
     Route::post('/reports/send-monthly', [MailReportController::class, 'send'])->name('api.reports.send-monthly');
 });

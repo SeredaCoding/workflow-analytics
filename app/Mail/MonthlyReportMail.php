@@ -17,10 +17,11 @@ class MonthlyReportMail extends Mailable
         string $subject,
         public string $htmlBody,
         ?string $csvContent = null,
+        string $csvName = 'relatorio-mensal.csv',
     ) {
         $this->subject = $subject;
         if ($csvContent) {
-            $this->attachData($csvContent, 'relatorio-mensal.csv', [
+            $this->attachData($csvContent, $csvName, [
                 'mime' => 'text/csv; charset=UTF-8',
             ]);
         }

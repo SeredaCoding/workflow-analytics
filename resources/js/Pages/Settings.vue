@@ -40,12 +40,12 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-500 mb-1">From Name</label>
+                            <label class="block text-xs text-gray-500 mb-1">Nome do remetente</label>
                             <input v-model="form.mail_from_name" placeholder="WorkFlow Analytics"
                                 class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
                         </div>
                         <div class="col-span-2">
-                            <label class="block text-xs text-gray-500 mb-1">From Address</label>
+                            <label class="block text-xs text-gray-500 mb-1">E-mail do remetente (Você)</label>
                             <input v-model="form.mail_from_address" placeholder="seu@email.com"
                                 class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
                         </div>
@@ -55,8 +55,13 @@
                 <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Destinatário</h3>
                     <div>
-                        <label class="block text-xs text-gray-500 mb-1">E-mail do Chefe</label>
-                        <input v-model="form.boss_email" type="email" placeholder="chefe@empresa.com"
+                        <label class="block text-xs text-gray-500 mb-1">Seu Nome</label>
+                        <input v-model="form.user_name" placeholder="João"
+                            class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">E-mail do destinatário</label>
+                        <input v-model="form.boss_email" type="email" placeholder="destinatario@empresa.com"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
                     </div>
                     <div>
@@ -75,16 +80,24 @@
                         <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;avg_focus&#125;&#125;</code>,
                         <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;meeting_hours&#125;&#125;</code>,
                         <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;category_distribution&#125;&#125;</code>,
-                        <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;daily_breakdown&#125;&#125;</code>,
+                        <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;month_breakdown&#125;&#125;</code>,
                         <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;top_activities&#125;&#125;</code>,
                         <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;weekly_summary&#125;&#125;</code>,
-                        <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;csv_note&#125;&#125;</code>
+                        <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;csv_note&#125;&#125;</code>,
+                        <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;user_name&#125;&#125;</code>
                     </p>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-xs text-gray-500 mb-1">HTML</label>
-                            <textarea v-model="form.report_template" rows="12"
-                                class="w-full text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white resize-none placeholder-gray-400"></textarea>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs text-gray-500">HTML</label>
+                                <button type="button" @click="templateEditable = !templateEditable"
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                    {{ templateEditable ? '🔒 Bloquear' : '✏️ Editar' }}
+                                </button>
+                            </div>
+                            <textarea v-model="form.report_template" rows="12" :disabled="!templateEditable" :readonly="!templateEditable"
+                                class="w-full text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white resize-none placeholder-gray-400"
+                                :class="!templateEditable ? 'opacity-60 cursor-not-allowed' : ''"></textarea>
                         </div>
                         <div>
                             <label class="block text-xs text-gray-500 mb-1">Preview</label>
@@ -94,7 +107,9 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end">
+                <div class="flex items-center justify-end gap-3">
+                    <span v-if="flashSuccess" class="text-sm text-green-500">{{ flashSuccess }}</span>
+                    <span v-if="flashError" class="text-sm text-red-500">{{ flashError }}</span>
                     <button type="submit"
                         class="px-6 py-2.5 text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
                         Salvar Configurações
@@ -117,6 +132,11 @@ const props = defineProps({
     inProgress: Object,
 })
 
+const templateEditable = ref(false)
+
+const flashSuccess = computed(() => page.props.flash?.success)
+const flashError = computed(() => page.props.flash?.error)
+
 const form = reactive({
     mail_host: props.settings?.mail_host || '',
     mail_port: props.settings?.mail_port || '',
@@ -125,12 +145,14 @@ const form = reactive({
     mail_encryption: props.settings?.mail_encryption || '',
     mail_from_address: props.settings?.mail_from_address || '',
     mail_from_name: props.settings?.mail_from_name || '',
+    user_name: props.settings?.user_name || '',
     boss_email: props.settings?.boss_email || '',
     report_subject: props.settings?.report_subject || 'Relatório Mensal - {{month}}',
     report_template: props.settings?.report_template || defaultTemplate,
 })
 
 const sampleData = {
+    user_name: 'João',
     month: 'Junho/2026',
     total_hours: '87.2',
     interruptions: '12',
@@ -138,25 +160,79 @@ const sampleData = {
     meeting_hours: '12.5',
     category_distribution: `
         <ul style="list-style:none;padding:0;margin:0">
-            <li style="padding:4px 0">🟢 Desenvolvimento: 52h (60%)</li>
-            <li style="padding:4px 0">🟡 Suporte: 12h (14%)</li>
-            <li style="padding:4px 0">🔵 Reunião: 12h (14%)</li>
-            <li style="padding:4px 0">🟣 Investigação: 6h (7%)</li>
-            <li style="padding:4px 0">🔴 Bug: 5h (6%)</li>
+            <li style="padding:4px 0">Desenvolvimento: 52h (60%)</li>
+            <li style="padding:4px 0">Suporte: 12h (14%)</li>
+            <li style="padding:4px 0">Reunião: 12h (14%)</li>
+            <li style="padding:4px 0">Investigação: 6h (7%)</li>
+            <li style="padding:4px 0">Bug: 5h (6%)</li>
         </ul>
     `.trim(),
-    daily_breakdown: `
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <tr style="background:#f3f4f6">
-                <th style="padding:6px 8px;text-align:left">Dia</th>
-                <th style="padding:6px 8px;text-align:right">Horas</th>
-                <th style="padding:6px 8px;text-align:right">Interrupções</th>
+    month_breakdown: `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse">
+            <tr>
+                <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Seg</th>
+                <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Ter</th>
+                <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Qua</th>
+                <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Qui</th>
+                <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Sex</th>
+                <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Sáb</th>
+                <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Dom</th>
+                <th style="padding:6px 4px;text-align:right;border-bottom:2px solid #e5e7eb;color:#111;font-size:11px;font-weight:600">Total</th>
             </tr>
-            <tr><td style="padding:6px 8px">Seg</td><td style="padding:6px 8px;text-align:right">7.5h</td><td style="padding:6px 8px;text-align:right">2</td></tr>
-            <tr><td style="padding:6px 8px">Ter</td><td style="padding:6px 8px;text-align:right">8.0h</td><td style="padding:6px 8px;text-align:right">1</td></tr>
-            <tr><td style="padding:6px 8px">Qua</td><td style="padding:6px 8px;text-align:right">6.0h</td><td style="padding:6px 8px;text-align:right">3</td></tr>
-            <tr><td style="padding:6px 8px">Qui</td><td style="padding:6px 8px;text-align:right">7.5h</td><td style="padding:6px 8px;text-align:right">1</td></tr>
-            <tr><td style="padding:6px 8px">Sex</td><td style="padding:6px 8px;text-align:right">5.0h</td><td style="padding:6px 8px;text-align:right">2</td></tr>
+            <tr>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">1<br><span style="font-size:10px;color:#666">8.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">2<br><span style="font-size:10px;color:#666">7.5h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">3<br><span style="font-size:10px;color:#666">6.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">4<br><span style="font-size:10px;color:#666">7.5h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">5<br><span style="font-size:10px;color:#666">5.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:right;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;font-weight:600;vertical-align:middle">34.0h</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">8<br><span style="font-size:10px;color:#666">7.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">9<br><span style="font-size:10px;color:#666">6.5h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">10<br><span style="font-size:10px;color:#666">5.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">11<br><span style="font-size:10px;color:#666">4.5h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">13<br><span style="font-size:10px;color:#666">5.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:right;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;font-weight:600;vertical-align:middle">28.0h</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">15<br><span style="font-size:10px;color:#666">6.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">16<br><span style="font-size:10px;color:#666">4.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">17<br><span style="font-size:10px;color:#666">5.5h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">19<br><span style="font-size:10px;color:#666">3.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">20<br><span style="font-size:10px;color:#666">2.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:right;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;font-weight:600;vertical-align:middle">20.5h</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">22<br><span style="font-size:10px;color:#666">4.5h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">23<br><span style="font-size:10px;color:#666">3.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;line-height:1.3">24<br><span style="font-size:10px;color:#666">2.5h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:right;border-bottom:1px solid #f3f4f6;background:#ffffff;font-size:13px;color:#333;font-weight:600;vertical-align:middle">10.0h</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">29<br><span style="font-size:10px;color:#666">4.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;line-height:1.3">30<br><span style="font-size:10px;color:#666">2.0h</span></td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:center;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#ccc;line-height:1.3">-</td>
+                <td style="padding:5px 3px;text-align:right;border-bottom:1px solid #f3f4f6;background:#f9fafb;font-size:13px;color:#333;font-weight:600;vertical-align:middle">6.0h</td>
+            </tr>
+            <tr>
+                <td colspan="7" style="padding:8px 4px;text-align:right;border-top:2px solid #e5e7eb;font-size:13px;color:#111;font-weight:600">Total do Mês</td>
+                <td style="padding:8px 4px;text-align:right;border-top:2px solid #e5e7eb;font-size:13px;color:#111;font-weight:700">87.2h</td>
+            </tr>
         </table>
     `.trim(),
     top_activities: `
@@ -203,7 +279,7 @@ const previewHtml = computed(() => {
 })
 
 function save() {
-    router.post('/settings', form, { preserveState: false })
+    router.post('/settings', form)
 }
 </script>
 
@@ -213,7 +289,7 @@ export const defaultTemplate = `<!--[if mso]>
 <![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
 <tr><td style="padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#333;font-size:14px;line-height:1.5">
-    <h2 style="margin:0 0 20px;font-size:22px;color:#111">Relatório de {{month}}</h2>
+    <h2 style="margin:0 0 20px;font-size:22px;color:#111">Relatório de {{user_name}} - {{month}}</h2>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
     <tr>
@@ -238,7 +314,7 @@ export const defaultTemplate = `<!--[if mso]>
     {{category_distribution}}
 
     <h3 style="margin:20px 0 10px;font-size:16px;color:#111">Mês</h3>
-    {{daily_breakdown}}
+    {{month_breakdown}}
 
     <h3 style="margin:20px 0 10px;font-size:16px;color:#111">Resumo Semanal</h3>
 {{weekly_summary}}

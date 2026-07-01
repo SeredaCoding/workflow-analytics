@@ -34,6 +34,34 @@
                     </button>
                     </div>
                 </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Descrição <span class="text-gray-400">(opcional)</span></label>
+                    <textarea v-model="form.description" rows="2" placeholder="Adicione uma descrição..."
+                        class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white resize-none placeholder-gray-400"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-2">Iniciar</label>
+                    <div class="flex items-center gap-3">
+                        <button type="button" @click="startMode = 'now'"
+                            class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
+                            :class="startMode === 'now'
+                                ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
+                            Agora
+                        </button>
+                        <button type="button" @click="startMode = 'custom'"
+                            class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
+                            :class="startMode === 'custom'
+                                ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
+                            Outro horário
+                        </button>
+                        <input v-if="startMode === 'custom'" type="time" v-model="customTime"
+                            class="text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white" />
+                    </div>
+                </div>
             </div>
 
             <div class="flex justify-end gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
@@ -61,23 +89,47 @@ const props = defineProps({
 const emit = defineEmits(['close', 'started'])
 
 const titleInput = ref(null)
+const startMode = ref('now')
+const customTime = ref('')
+
+function nowString() {
+    const d = new Date()
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+}
+
 const form = reactive({
     title: '',
     category_id: props.categories?.[0]?.id || null,
     project_id: null,
+    description: '',
 })
 
 function submit() {
     if (!form.title.trim() || !form.category_id) return
-    router.post('/api/activities/start', {
+
+    const payload = {
         title: form.title.trim(),
         category_id: form.category_id,
         project_id: form.project_id,
-    }, {
+        description: form.description.trim() || null,
+    }
+
+    if (startMode.value === 'custom' && customTime.value) {
+        const today = new Date()
+        const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0')
+        payload.started_at = dateStr + ' ' + customTime.value + ':00'
+    }
+
+    router.post('/api/activities/start', payload, {
         preserveState: false,
         onSuccess: () => emit('started'),
     })
 }
+
+onMounted(() => {
+    titleInput.value?.focus()
+    customTime.value = nowString()
+})
 
 onMounted(() => {
     titleInput.value?.focus()

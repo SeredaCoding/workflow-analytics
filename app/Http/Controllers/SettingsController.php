@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,8 +13,20 @@ class SettingsController extends Controller
     {
         $settings = Setting::pluck('value', 'key');
 
+        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+
         return Inertia::render('Settings', [
             'settings' => $settings,
+            'inProgress' => $inProgress ? [
+                'id' => $inProgress->id,
+                'title' => $inProgress->title,
+                'type' => $inProgress->type,
+                'parent_id' => $inProgress->parent_id,
+                'category' => $inProgress->category?->name,
+                'category_color' => $inProgress->category?->color,
+                'project' => $inProgress->project?->name,
+                'started_at' => $inProgress->started_at->toIso8601String(),
+            ] : null,
         ]);
     }
 
@@ -27,6 +40,7 @@ class SettingsController extends Controller
             'mail_encryption' => 'nullable|string|max:50',
             'mail_from_address' => 'nullable|email|max:255',
             'mail_from_name' => 'nullable|string|max:255',
+            'user_name' => 'nullable|string|max:255',
             'boss_email' => 'nullable|email|max:255',
             'report_subject' => 'nullable|string|max:255',
             'report_template' => 'nullable|string',

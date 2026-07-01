@@ -53,9 +53,21 @@ class ActivityController extends Controller
             ->paginate(50)
             ->withQueryString();
 
+        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+
         return Inertia::render('Activities', [
             'activities' => $activities,
             'filters' => $request->only(['search', 'category_id', 'project_id', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level']),
+            'inProgress' => $inProgress ? [
+                'id' => $inProgress->id,
+                'title' => $inProgress->title,
+                'type' => $inProgress->type,
+                'parent_id' => $inProgress->parent_id,
+                'category' => $inProgress->category?->name,
+                'category_color' => $inProgress->category?->color,
+                'project' => $inProgress->project?->name,
+                'started_at' => $inProgress->started_at->toIso8601String(),
+            ] : null,
         ]);
     }
 
@@ -96,7 +108,15 @@ class ActivityController extends Controller
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'project_id' => 'nullable|exists:projects,id',
+            'description' => 'nullable|string|max:1000',
+            'started_at' => 'nullable|date|before_or_equal:now',
         ]);
+
+        $startedAt = $validated['started_at'] ?? null;
+        if ($startedAt) {
+            // Re-parse so we get a Carbon instance with the timezone
+            $startedAt = Carbon::parse($startedAt);
+        }
 
         // Pause any current in-progress activity
         Activity::inProgress()->each(function ($a) {
@@ -110,7 +130,8 @@ class ActivityController extends Controller
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
             'project_id' => $validated['project_id'],
-            'started_at' => now(),
+            'description' => $validated['description'] ?? null,
+            'started_at' => $startedAt ?? now(),
             'status' => 'in_progress',
             'type' => 'activity',
         ]);
