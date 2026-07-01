@@ -11,9 +11,9 @@ class DashboardController extends Controller
     public function index()
     {
         $today = today();
-        $now = now();
+        $userId = auth()->id();
 
-        $activitiesToday = Activity::whereDate('started_at', $today)->get();
+        $activitiesToday = Activity::where('user_id', $userId)->whereDate('started_at', $today)->get();
 
         $totalMinutes = $activitiesToday->sum('duration_minutes');
         $interruptions = $activitiesToday->where('type', 'interruption');
@@ -21,11 +21,11 @@ class DashboardController extends Controller
         $support = $activitiesToday->whereIn('type', ['activity'])->filter(fn($a) => $a->category?->type === 'support');
         $meetings = $activitiesToday->whereIn('type', ['activity'])->filter(fn($a) => $a->category?->type === 'meeting');
 
-        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $inProgress = Activity::where('user_id', $userId)->inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
         $threeDaysAgo = today()->subDays(2);
 
-        $timeline = Activity::whereDate('started_at', '>=', $threeDaysAgo)
+        $timeline = Activity::where('user_id', $userId)->whereDate('started_at', '>=', $threeDaysAgo)
             ->with(['category', 'project'])
             ->orderBy('started_at', 'desc')
             ->get()

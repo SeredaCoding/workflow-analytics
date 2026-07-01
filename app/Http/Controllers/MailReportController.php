@@ -19,8 +19,9 @@ class MailReportController extends Controller
     {
         $includeInProgress = $request->boolean('include_in_progress');
         $date = $this->parseMonth($request->input('month'));
+        $userId = auth()->id();
 
-        $settings = Setting::pluck('value', 'key');
+        $settings = Setting::where('user_id', $userId)->pluck('value', 'key');
 
         $bossEmail = $settings->get('boss_email');
         if (!$bossEmail) {
@@ -32,13 +33,15 @@ class MailReportController extends Controller
             return response()->json(['error' => 'Template do relatório não configurado.'], 422);
         }
 
+        $this->applyMailConfig($settings);
+
         $userName = $settings->get('user_name', '');
         $subject = $settings->get('report_subject', 'Relatório Mensal - {{month}}');
 
-        $monthly = $this->reportService->monthlyData($includeInProgress, $date);
-        $categoryDistribution = $this->reportService->categoryDistribution($includeInProgress, $date);
-        $dailyBreakdown = $this->reportService->dailyBreakdown($includeInProgress, $date);
-        $topActivities = $this->reportService->topActivities($includeInProgress, $date);
+        $monthly = $this->reportService->monthlyData($userId, $includeInProgress, $date);
+        $categoryDistribution = $this->reportService->categoryDistribution($userId, $includeInProgress, $date);
+        $dailyBreakdown = $this->reportService->dailyBreakdown($userId, $includeInProgress, $date);
+        $topActivities = $this->reportService->topActivities($userId, $includeInProgress, $date);
 
         $totalMinutes = $monthly['total_minutes'] ?: 1;
 
@@ -66,7 +69,7 @@ class MailReportController extends Controller
             $emailSubject = str_replace('{{' . $key . '}}', $value, $emailSubject);
         }
 
-        $csvContent = $this->generateCsv($includeInProgress, $date);
+        $csvContent = $this->generateCsv($includeInProgress, $date, $userId);
 
         try {
             $csvName = $userName ? 'relatorio-mensal-' . \Illuminate\Support\Str::slug($userName) . '-' . $date->format('m-Y') . '.csv' : 'relatorio-mensal.csv';
@@ -74,6 +77,34 @@ class MailReportController extends Controller
             return response()->json(['success' => 'Relatório enviado com sucesso para ' . $bossEmail]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Erro ao enviar: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function applyMailConfig(\Illuminate\Support\Collection $settings): void
+    {
+        if ($host = $settings->get('mail_host')) {
+            config()->set('mail.mailers.smtp.host', $host);
+        }
+        if ($port = $settings->get('mail_port')) {
+            config()->set('mail.mailers.smtp.port', (int) $port);
+        }
+        if ($username = $settings->get('mail_username')) {
+            config()->set('mail.mailers.smtp.username', $username);
+        }
+        if ($password = $settings->get('mail_password')) {
+            config()->set('mail.mailers.smtp.password', $password);
+        }
+        if ($encryption = $settings->get('mail_encryption')) {
+            config()->set('mail.mailers.smtp.encryption', $encryption);
+        }
+        if ($fromAddress = $settings->get('mail_from_address')) {
+            config()->set('mail.from.address', $fromAddress);
+        }
+        if ($fromName = $settings->get('mail_from_name')) {
+            config()->set('mail.from.name', $fromName);
+        }
+        if ($host) {
+            config()->set('mail.default', 'smtp');
         }
     }
 
@@ -101,14 +132,16 @@ class MailReportController extends Controller
         return $html . '</table>';
     }
 
-    private function generateCsv(bool $includeInProgress = false, ?\Carbon\Carbon $date = null): string
+    private function generateCsv(bool $includeInProgress = false, ?\Carbon\Carbon $date = null, ?int $userId = null): string
     {
         $d = $date ?? now();
-        $activities = Activity::where('started_at', '>=', $d->copy()->startOfMonth())
+        $query = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $d->copy()->startOfMonth())
             ->where('started_at', '<=', $d->copy()->endOfMonth())
             ->with('category', 'project')
-            ->orderBy('started_at', 'desc')
-            ->get();
+            ->orderBy('started_at', 'desc');
+
+        $activities = $query->get();
 
         if ($includeInProgress) {
             $activities = $this->reportService->fillInProgressDuration($activities, true);

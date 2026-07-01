@@ -23,8 +23,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
-            'projects' => Project::where('is_active', true)->get(),
+            'categories' => $request->user()
+                ? Category::where('user_id', $request->user()->id)->where('is_active', true)->orderBy('sort_order')->get()
+                : Category::where('is_active', true)->orderBy('sort_order')->get(),
+            'projects' => $request->user()
+                ? Project::where('user_id', $request->user()->id)->where('is_active', true)->get()
+                : Project::where('is_active', true)->get(),
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),

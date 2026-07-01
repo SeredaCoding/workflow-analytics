@@ -21,10 +21,11 @@ class ReportService
         ];
     }
 
-    public function monthlyData(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function monthlyData(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
-        $activities = Activity::where('started_at', '>=', $bounds['start'])
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
             ->where('started_at', '<=', $bounds['end'])
             ->get();
 
@@ -43,10 +44,11 @@ class ReportService
         ];
     }
 
-    public function categoryDistribution(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function categoryDistribution(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
-        $activities = Activity::where('started_at', '>=', $bounds['start'])
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
             ->where('started_at', '<=', $bounds['end'])
             ->with('category')
             ->get();
@@ -68,7 +70,7 @@ class ReportService
             ->toArray();
     }
 
-    public function dailyBreakdown(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function dailyBreakdown(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
         $start = $bounds['start'];
@@ -87,7 +89,7 @@ class ReportService
                 $isCurrentMonth = $dayDate->month === $start->month && $dayDate->year === $start->year;
 
                 if ($isCurrentMonth) {
-                    $activities = Activity::whereDate('started_at', $dayDate)->get();
+                    $activities = Activity::where('user_id', $userId)->whereDate('started_at', $dayDate)->get();
                     if ($includeInProgress) {
                         $activities = $this->fillInProgressDuration($activities, true);
                     }
@@ -126,10 +128,11 @@ class ReportService
         ];
     }
 
-    public function topActivities(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function topActivities(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
-        $query = Activity::where('started_at', '>=', $bounds['start'])
+        $query = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
             ->where('started_at', '<=', $bounds['end'])
             ->where('type', 'activity')
             ->with('category');

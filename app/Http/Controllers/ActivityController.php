@@ -3,15 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\Category;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ActivityController extends Controller
 {
+    private function userActivities()
+    {
+        return Activity::where('user_id', auth()->id());
+    }
+
     public function index(Request $request)
     {
-        $query = Activity::with(['category', 'project', 'parent', 'children']);
+        $query = $this->userActivities()->with(['category', 'project', 'parent', 'children']);
 
         if ($search = $request->input('search')) {
             $query->where('title', 'like', "%{$search}%");
@@ -58,7 +64,7 @@ class ActivityController extends Controller
             ->paginate((int) $perPage)
             ->withQueryString();
 
-        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $inProgress = $this->userActivities()->inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
         return Inertia::render('Activities', [
             'activities' => $activities,
@@ -97,12 +103,13 @@ class ActivityController extends Controller
         $validated['started_at'] = now();
         $validated['status'] = 'in_progress';
         $validated['type'] ??= 'activity';
+        $validated['user_id'] = auth()->id();
 
         if (isset($validated['tags']) && is_string($validated['tags'])) {
             $validated['tags'] = json_decode($validated['tags'], true);
         }
 
-        $activity = Activity::create($validated);
+        Activity::create($validated);
 
         return redirect()->back();
     }
@@ -119,22 +126,21 @@ class ActivityController extends Controller
 
         $startedAt = $validated['started_at'] ?? null;
         if ($startedAt) {
-            // Re-parse so we get a Carbon instance with the timezone
             $startedAt = Carbon::parse($startedAt);
         }
 
-        // Pause any current in-progress activity
-        Activity::inProgress()->each(function ($a) {
+        $this->userActivities()->inProgress()->each(function ($a) {
             $a->update([
                 'status' => 'paused',
                 'ended_at' => now(),
             ]);
         });
 
-        $activity = Activity::create([
+        Activity::create([
+            'user_id' => auth()->id(),
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
-            'project_id' => $validated['project_id'],
+            'project_id' => $validated['project_id'] ?? null,
             'description' => $validated['description'] ?? null,
             'started_at' => $startedAt ?? now(),
             'status' => 'in_progress',
@@ -146,6 +152,10 @@ class ActivityController extends Controller
 
     public function pause(Activity $activity)
     {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $now = now();
         $start = Carbon::parse($activity->started_at);
         $duration = $start->diffInMinutes($now);
@@ -161,6 +171,10 @@ class ActivityController extends Controller
 
     public function resume(Activity $activity)
     {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $activity->update([
             'status' => 'in_progress',
             'started_at' => now(),
@@ -172,6 +186,10 @@ class ActivityController extends Controller
 
     public function stop(Activity $activity)
     {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $now = now();
         $start = Carbon::parse($activity->started_at);
         $duration = $start->diffInMinutes($now);
@@ -193,8 +211,7 @@ class ActivityController extends Controller
             'person' => 'nullable|string',
         ]);
 
-        // Pause current in-progress activity
-        $currentActivity = Activity::inProgress()->first();
+        $currentActivity = $this->userActivities()->inProgress()->first();
 
         if ($currentActivity) {
             $now = now();
@@ -207,16 +224,16 @@ class ActivityController extends Controller
                 'duration_minutes' => ($currentActivity->duration_minutes ?? 0) + $duration,
             ]);
 
-            // Create interruption linked to paused activity
-            $interruptionCategoryId = \App\Models\Category::where('slug', 'interruption')->value('id');
+            $interruptionCategoryId = Category::where('slug', 'interruption')->value('id');
 
             Activity::create([
+                'user_id' => auth()->id(),
                 'title' => $validated['title'],
                 'category_id' => $interruptionCategoryId ?? 12,
                 'type' => 'interruption',
                 'parent_id' => $currentActivity->id,
-                'source' => $validated['source'],
-                'person' => $validated['person'],
+                'source' => $validated['source'] ?? null,
+                'person' => $validated['person'] ?? null,
                 'started_at' => now(),
                 'status' => 'in_progress',
             ]);
@@ -227,6 +244,10 @@ class ActivityController extends Controller
 
     public function resolveInterruption(Activity $activity)
     {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $now = now();
         $start = Carbon::parse($activity->started_at);
         $duration = $start->diffInMinutes($now);
@@ -237,7 +258,6 @@ class ActivityController extends Controller
             'duration_minutes' => $duration,
         ]);
 
-        // Resume parent activity
         if ($activity->parent_id) {
             $parent = Activity::find($activity->parent_id);
             if ($parent) {
@@ -266,10 +286,11 @@ class ActivityController extends Controller
         $start = Carbon::parse($validated['started_at']);
         $end = Carbon::parse($validated['ended_at']);
 
-        $activity = Activity::create([
+        Activity::create([
+            'user_id' => auth()->id(),
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
-            'project_id' => $validated['project_id'],
+            'project_id' => $validated['project_id'] ?? null,
             'description' => $validated['description'] ?? null,
             'type' => 'activity',
             'status' => 'completed',
@@ -283,6 +304,10 @@ class ActivityController extends Controller
 
     public function update(Request $request, Activity $activity)
     {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'title' => 'string|max:255',
             'category_id' => 'exists:categories,id',
@@ -316,6 +341,10 @@ class ActivityController extends Controller
 
     public function destroy(Request $request, Activity $activity)
     {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $mode = $request->input('mode', 'cascade');
         $affected = 0;
 

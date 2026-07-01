@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Activity extends Model
 {
     protected $fillable = [
-        'type', 'category_id', 'project_id', 'parent_id',
+        'user_id', 'type', 'category_id', 'project_id', 'parent_id',
         'title', 'description', 'priority', 'source', 'person',
         'tags', 'status', 'started_at', 'ended_at', 'duration_minutes',
         'is_planned', 'energy_level', 'notes',
@@ -25,6 +25,11 @@ class Activity extends Model
             'energy_level' => 'integer',
             'duration_minutes' => 'integer',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function category(): BelongsTo

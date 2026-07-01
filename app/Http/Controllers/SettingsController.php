@@ -11,9 +11,9 @@ class SettingsController extends Controller
 {
     public function index()
     {
-        $settings = Setting::pluck('value', 'key');
+        $settings = Setting::where('user_id', auth()->id())->pluck('value', 'key');
 
-        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $inProgress = Activity::where('user_id', auth()->id())->inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
         return Inertia::render('Settings', [
             'settings' => $settings,
@@ -48,7 +48,7 @@ class SettingsController extends Controller
 
         foreach ($validated as $key => $value) {
             Setting::updateOrCreate(
-                ['key' => $key],
+                ['user_id' => auth()->id(), 'key' => $key],
                 ['value' => $value ?? ''],
             );
         }

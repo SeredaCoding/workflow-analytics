@@ -17,15 +17,16 @@ class StatsController extends Controller
     public function index(Request $request)
     {
         $date = $this->parseMonth($request->input('month'));
+        $userId = auth()->id();
 
-        $monthly = $this->reportService->monthlyData(false, $date);
-        $categoryDistribution = $this->reportService->categoryDistribution(false, $date);
-        $dailyBreakdown = $this->reportService->dailyBreakdown(false, $date);
-        $topActivities = $this->reportService->topActivities(false, $date);
+        $monthly = $this->reportService->monthlyData($userId, false, $date);
+        $categoryDistribution = $this->reportService->categoryDistribution($userId, false, $date);
+        $dailyBreakdown = $this->reportService->dailyBreakdown($userId, false, $date);
+        $topActivities = $this->reportService->topActivities($userId, false, $date);
 
         $totalMinutes = $monthly['total_minutes'] ?: 1;
 
-        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $inProgress = Activity::where('user_id', $userId)->inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
         return Inertia::render('Stats', [
             'month' => $date->format('Y-m'),
@@ -49,9 +50,11 @@ class StatsController extends Controller
 
     public function yearly()
     {
-        $months = collect(range(0, 11))->map(function ($i) {
+        $userId = auth()->id();
+
+        $months = collect(range(0, 11))->map(function ($i) use ($userId) {
             $date = now()->subMonths(11 - $i);
-            $data = $this->reportService->monthlyData(false, $date);
+            $data = $this->reportService->monthlyData($userId, false, $date);
             return [
                 'month' => $date->translatedFormat('M/Y'),
                 'total_minutes' => $data['total_minutes'],
@@ -73,10 +76,11 @@ class StatsController extends Controller
 
     public function daily(Request $request)
     {
+        $userId = auth()->id();
         $ref = $this->parseMonth($request->input('month'))->copy()->endOfMonth()->min(now());
-        $days = collect(range(6, 0))->map(function ($i) use ($ref) {
+        $days = collect(range(6, 0))->map(function ($i) use ($ref, $userId) {
             $date = $ref->copy()->subDays($i);
-            $activities = Activity::whereDate('started_at', $date)->get();
+            $activities = Activity::where('user_id', $userId)->whereDate('started_at', $date)->get();
 
             return [
                 'date' => $date->format('Y-m-d'),
@@ -93,9 +97,10 @@ class StatsController extends Controller
 
     public function heatmap()
     {
-        $days = collect(range(0, 364))->map(function ($i) {
+        $userId = auth()->id();
+        $days = collect(range(0, 364))->map(function ($i) use ($userId) {
             $date = today()->subDays(364 - $i);
-            $minutes = Activity::whereDate('started_at', $date)->sum('duration_minutes');
+            $minutes = Activity::where('user_id', $userId)->whereDate('started_at', $date)->sum('duration_minutes');
 
             return [
                 'date' => $date->format('Y-m-d'),
