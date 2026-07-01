@@ -6,7 +6,6 @@
   <img src="https://img.shields.io/badge/Vue_3-4BFC08?logo=vue.js&logoColor=white" alt="Vue 3">
   <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" alt="Docker">
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
 </p>
 
 **WorkFlow Analytics** é uma aplicação web single-user para registro de horas, análise de produtividade e geração de relatórios. Imagine um "toggl" com dashboards e relatórios mensais prontos para enviar ao seu gestor.
