@@ -10,14 +10,15 @@ services:
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/app.ini
     environment:
       - APP_ENV=${APP_ENV:-local}
-    depends_on:
-      - node
+    depends_on: []
     networks:
       - workflow-network
+      - cloudflare_net
 
   nginx:
     image: nginx:alpine
     container_name: workflow-analytics-nginx
+    restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:80"
     volumes:
@@ -27,6 +28,7 @@ services:
       - app
     networks:
       - workflow-network
+      - cloudflare_net
 
   node:
     image: node:22-alpine
@@ -39,6 +41,7 @@ services:
       - .:/var/www
     networks:
       - workflow-network
+      - cloudflare_net
 
   db:
     image: postgres:17-alpine
@@ -54,6 +57,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - workflow-network
+      - cloudflare_net
 
 volumes:
   postgres_data:
@@ -61,3 +65,6 @@ volumes:
 networks:
   workflow-network:
     driver: bridge
+  cloudflare_net:
+    external: true
+    
