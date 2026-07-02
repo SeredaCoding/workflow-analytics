@@ -3,59 +3,14 @@
         <div class="max-w-5xl mx-auto space-y-8">
             <div>
                 <h2 class="text-2xl font-bold">Configurações</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">SMTP, destinatário e template do relatório mensal</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Destinatário e template do relatório mensal</p>
             </div>
 
             <form @submit.prevent="save" class="space-y-6">
                 <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Servidor SMTP</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Host</label>
-                            <input v-model="form.mail_host" placeholder="smtp.gmail.com"
-                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Porta</label>
-                            <input v-model="form.mail_port" placeholder="587"
-                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Usuário</label>
-                            <input v-model="form.mail_username" placeholder="seu@email.com"
-                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Senha</label>
-                            <input v-model="form.mail_password" type="password" placeholder="app password"
-                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Criptografia</label>
-                            <select v-model="form.mail_encryption"
-                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white">
-                                <option value="">Nenhuma</option>
-                                <option value="tls">TLS</option>
-                                <option value="ssl">SSL</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Nome do remetente</label>
-                            <input v-model="form.mail_from_name" placeholder="WorkFlow Analytics"
-                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs text-gray-500 mb-1">E-mail do remetente (Você)</label>
-                            <input v-model="form.mail_from_address" placeholder="seu@email.com"
-                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Destinatário</h3>
                     <div>
-                        <label class="block text-xs text-gray-500 mb-1">Seu Nome</label>
+                        <label class="block text-xs text-gray-500 mb-1">Nome</label>
                         <input v-model="form.user_name" placeholder="João"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
                     </div>
@@ -138,13 +93,6 @@ const flashSuccess = computed(() => page.props.flash?.success)
 const flashError = computed(() => page.props.flash?.error)
 
 const form = reactive({
-    mail_host: props.settings?.mail_host || '',
-    mail_port: props.settings?.mail_port || '',
-    mail_username: props.settings?.mail_username || '',
-    mail_password: props.settings?.mail_password || '',
-    mail_encryption: props.settings?.mail_encryption || '',
-    mail_from_address: props.settings?.mail_from_address || '',
-    mail_from_name: props.settings?.mail_from_name || '',
     user_name: props.settings?.user_name || '',
     boss_email: props.settings?.boss_email || '',
     report_subject: props.settings?.report_subject || 'Relatório Mensal - {{month}}',

@@ -19,7 +19,6 @@ const props = defineProps({
 
 const form = useForm({
     token: props.token,
-    email: props.email,
     password: '',
     password_confirmation: '',
 });
@@ -33,27 +32,15 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Reset Password" />
+        <Head title="Redefinir senha" />
 
         <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+            <div class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Redefinindo senha para: <strong>{{ email }}</strong>
             </div>
 
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+            <div>
+                <InputLabel for="password" value="Nova senha" />
 
                 <TextInput
                     id="password"
@@ -61,6 +48,7 @@ const submit = () => {
                     class="mt-1 block w-full"
                     v-model="form.password"
                     required
+                    autofocus
                     autocomplete="new-password"
                 />
 
@@ -70,7 +58,7 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    value="Confirmar senha"
                 />
 
                 <TextInput
@@ -88,12 +76,12 @@ const submit = () => {
                 />
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
+            <div class="mt-6 flex items-center justify-end">
                 <PrimaryButton
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Reset Password
+                    Redefinir senha
                 </PrimaryButton>
             </div>
         </form>

@@ -33,13 +33,6 @@ class SettingsController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'mail_host' => 'nullable|string|max:255',
-            'mail_port' => 'nullable|string|max:10',
-            'mail_username' => 'nullable|string|max:255',
-            'mail_password' => 'nullable|string|max:255',
-            'mail_encryption' => 'nullable|string|max:50',
-            'mail_from_address' => 'nullable|email|max:255',
-            'mail_from_name' => 'nullable|string|max:255',
             'user_name' => 'nullable|string|max:255',
             'boss_email' => 'nullable|email|max:255',
             'report_subject' => 'nullable|string|max:255',

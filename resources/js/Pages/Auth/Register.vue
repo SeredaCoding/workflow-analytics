@@ -103,9 +103,9 @@ const submit = () => {
             </div>
         </form>
 
-        <p class="mt-6 text-center text-sm text-gray-500">
+        <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
             Já tem conta?
-            <Link :href="route('login')" class="text-indigo-600 hover:text-indigo-500 font-medium underline">
+            <Link :href="route('login')" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium underline">
                 Fazer login
             </Link>
         </p>

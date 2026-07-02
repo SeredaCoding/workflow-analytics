@@ -33,8 +33,6 @@ class MailReportController extends Controller
             return response()->json(['error' => 'Template do relatório não configurado.'], 422);
         }
 
-        $this->applyMailConfig($settings);
-
         $userName = $settings->get('user_name', '');
         $subject = $settings->get('report_subject', 'Relatório Mensal - {{month}}');
 
@@ -77,34 +75,6 @@ class MailReportController extends Controller
             return response()->json(['success' => 'Relatório enviado com sucesso para ' . $bossEmail]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Erro ao enviar: ' . $e->getMessage()], 500);
-        }
-    }
-
-    private function applyMailConfig(\Illuminate\Support\Collection $settings): void
-    {
-        if ($host = $settings->get('mail_host')) {
-            config()->set('mail.mailers.smtp.host', $host);
-        }
-        if ($port = $settings->get('mail_port')) {
-            config()->set('mail.mailers.smtp.port', (int) $port);
-        }
-        if ($username = $settings->get('mail_username')) {
-            config()->set('mail.mailers.smtp.username', $username);
-        }
-        if ($password = $settings->get('mail_password')) {
-            config()->set('mail.mailers.smtp.password', $password);
-        }
-        if ($encryption = $settings->get('mail_encryption')) {
-            config()->set('mail.mailers.smtp.encryption', $encryption);
-        }
-        if ($fromAddress = $settings->get('mail_from_address')) {
-            config()->set('mail.from.address', $fromAddress);
-        }
-        if ($fromName = $settings->get('mail_from_name')) {
-            config()->set('mail.from.name', $fromName);
-        }
-        if ($host) {
-            config()->set('mail.default', 'smtp');
         }
     }
 

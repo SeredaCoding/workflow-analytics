@@ -3,7 +3,7 @@
         <div class="flex h-screen overflow-hidden">
             <aside class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
                 <div class="p-6">
-                    <h1 class="text-lg font-bold tracking-tight">WorkFlow Analytics</h1>
+                    <ApplicationLogo class="w-full h-auto" />
                 </div>
                 <nav class="flex-1 px-3 space-y-1">
                     <Link v-for="item in navItems" :key="item.href" :href="item.href"
@@ -77,6 +77,7 @@ import TimerBar from '@/Components/TimerBar.vue'
 import QuickStartModal from '@/Components/QuickStartModal.vue'
 import InterruptionModal from '@/Components/InterruptionModal.vue'
 import ManualEntryModal from '@/Components/ManualEntryModal.vue'
+import ApplicationLogo from '@/Components/ApplicationLogo.vue'
 import CommandPalette from '@/Components/CommandPalette.vue'
 
 const page = usePage()

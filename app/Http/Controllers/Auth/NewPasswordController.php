@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -16,35 +17,35 @@ use Inertia\Response;
 
 class NewPasswordController extends Controller
 {
-    /**
-     * Display the password reset view.
-     */
-    public function create(Request $request): Response
+    public function create(Request $request): Response|RedirectResponse
     {
+        $email = $this->resolveEmailFromToken($request->route('token'));
+
+        if (! $email) {
+            return redirect()->route('login')->with('error', 'Link de redefinição inválido ou expirado.');
+        }
+
         return Inertia::render('Auth/ResetPassword', [
-            'email' => $request->email,
+            'email' => $email,
             'token' => $request->route('token'),
         ]);
     }
 
-    /**
-     * Handle an incoming new password request.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'token' => 'required',
-            'email' => 'required|email',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // Here we will attempt to reset the user's password. If it is successful we
-        // will update the password on an actual user model and persist it to the
-        // database. Otherwise we will parse the error and return the response.
+        $email = $this->resolveEmailFromToken($request->token);
+
+        if (! $email) {
+            return redirect()->route('login')->with('error', 'Link de redefinição inválido ou expirado.');
+        }
+
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            ['email' => $email, 'password' => $request->password, 'password_confirmation' => $request->password_confirmation, 'token' => $request->token],
             function ($user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
@@ -55,9 +56,6 @@ class NewPasswordController extends Controller
             }
         );
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
         if ($status == Password::PASSWORD_RESET) {
             return redirect()->route('login')->with('status', __($status));
         }
@@ -65,5 +63,14 @@ class NewPasswordController extends Controller
         throw ValidationException::withMessages([
             'email' => [trans($status)],
         ]);
+    }
+
+    private function resolveEmailFromToken(string $token): ?string
+    {
+        return DB::table('password_reset_tokens')
+            ->where('created_at', '>', now()->subMinutes(60))
+            ->get()
+            ->first(fn ($record) => Hash::check($token, $record->token))
+            ?->email;
     }
 }
