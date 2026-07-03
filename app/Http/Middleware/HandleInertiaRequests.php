@@ -21,7 +21,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user()?->load(['sector', 'role']),
             ],
             'categories' => $request->user()
                 ? Category::where('user_id', $request->user()->id)->where('is_active', true)->orderBy('sort_order')->get()

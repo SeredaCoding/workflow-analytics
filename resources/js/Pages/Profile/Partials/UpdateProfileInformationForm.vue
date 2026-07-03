@@ -91,6 +91,11 @@ const form = useForm({
                 </div>
             </div>
 
+            <div v-if="user.sector" class="pb-2">
+                <InputLabel value="Setor" />
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ user.sector.name }}</p>
+            </div>
+
             <div class="flex items-center gap-4">
                 <PrimaryButton :disabled="form.processing">Salvar</PrimaryButton>
 

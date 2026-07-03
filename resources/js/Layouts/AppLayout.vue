@@ -5,15 +5,33 @@
                 <div class="p-6">
                     <ApplicationLogo class="w-full h-auto" />
                 </div>
-                <nav class="flex-1 px-3 space-y-1">
-                    <Link v-for="item in navItems" :key="item.href" :href="item.href"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-                        :class="$page.url === item.href
-                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'">
-                        <span v-html="item.icon" class="w-5 h-5" />
-                        {{ item.label }}
-                    </Link>
+                <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+                    <template v-for="item in navItems" :key="item.label">
+                        <div v-if="item.separator" class="border-t border-gray-200 dark:border-gray-800 my-2"></div>
+                        <div v-else-if="item.children" class="space-y-1">
+                            <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 cursor-default">
+                                <span v-html="item.icon" class="w-5 h-5" />
+                                {{ item.label }}
+                            </div>
+                            <div class="ml-4 space-y-1">
+                                <Link v-for="child in item.children" :key="child.href" :href="child.href"
+                                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    :class="$page.url === child.href
+                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'">
+                                    {{ child.label }}
+                                </Link>
+                            </div>
+                        </div>
+                        <Link v-else :href="item.href"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                            :class="$page.url === item.href
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'">
+                            <span v-html="item.icon" class="w-5 h-5" />
+                            {{ item.label }}
+                        </Link>
+                    </template>
                 </nav>
                 <div class="p-3 border-t border-gray-200 dark:border-gray-800">
                     <div class="text-xs text-gray-500 px-3 py-2">
@@ -104,13 +122,40 @@ function onKeydown(e) {
 onMounted(() => document.addEventListener('keydown', onKeydown))
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
-const navItems = [
-    { label: 'Dashboard', href: '/', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
-    { label: 'Atividades', href: '/activities', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>' },
-    { label: 'Estatísticas', href: '/stats', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
-    { label: 'Configurações', href: '/settings', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>' },
-    { label: 'Perfil', href: '/profile', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' },
-]
+const user = page.props.auth.user
+
+const navItems = computed(() => {
+    const items = [
+        { label: 'Dashboard', href: '/', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+        { label: 'Atividades', href: '/activities', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>' },
+        { label: 'Estatísticas', href: '/stats', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+        { label: 'Configurações', href: '/settings', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>' },
+        { label: 'Perfil', href: '/profile', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' },
+    ]
+
+    if (user?.role_id === 2 || user?.role_id === 3) {
+        items.splice(3, 0, {
+            label: 'Meu Setor',
+            href: '/supervisor/sector',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        })
+    }
+
+    if (user?.role_id === 3) {
+        items.push({ separator: true })
+        items.push({
+            label: 'Admin',
+            href: '#',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+            children: [
+                { label: 'Setores', href: '/admin/sectors' },
+                { label: 'Usuários', href: '/admin/users' },
+            ],
+        })
+    }
+
+    return items
+})
 
 function onStarted() {
     showQuickStart.value = false

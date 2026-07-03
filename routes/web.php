@@ -1,11 +1,15 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\Admin\SectorController as AdminSectorController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StatsController;
+use App\Http\Controllers\Supervisor\SectorController as SupervisorSectorController;
+use App\Http\Controllers\Supervisor\UserReportController as SupervisorUserReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
@@ -35,6 +39,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/sectors', [AdminSectorController::class, 'index'])->name('sectors.index');
+        Route::post('/sectors', [AdminSectorController::class, 'store'])->name('sectors.store');
+        Route::get('/sectors/{sector}/edit', [AdminSectorController::class, 'edit'])->name('sectors.edit');
+        Route::put('/sectors/{sector}', [AdminSectorController::class, 'update'])->name('sectors.update');
+        Route::delete('/sectors/{sector}', [AdminSectorController::class, 'destroy'])->name('sectors.destroy');
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    });
+
+    Route::middleware('supervisor')->prefix('supervisor')->name('supervisor.')->group(function () {
+        Route::get('/sector', [SupervisorSectorController::class, 'index'])->name('sector.index');
+        Route::get('/users/{user}', [SupervisorUserReportController::class, 'show'])->name('users.show');
+    });
 });
 
 require __DIR__.'/auth.php';
