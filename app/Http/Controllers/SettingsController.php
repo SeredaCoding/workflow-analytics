@@ -37,6 +37,8 @@ class SettingsController extends Controller
             'boss_email' => 'nullable|email|max:255',
             'report_subject' => 'nullable|string|max:255',
             'report_template' => 'nullable|string',
+            'lunch_start' => 'nullable|date_format:H:i|required_with:lunch_end',
+            'lunch_end' => 'nullable|date_format:H:i|required_with:lunch_start|after:lunch_start',
         ]);
 
         foreach ($validated as $key => $value) {

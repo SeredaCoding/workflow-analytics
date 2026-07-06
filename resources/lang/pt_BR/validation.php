@@ -155,7 +155,7 @@ return [
         'project_id' => 'projeto',
         'type' => 'tipo',
         'priority' => 'prioridade',
-        'energy_level' => 'nível de energia',
+        'energy_level' => 'nível de dificuldade',
         'started_at' => 'iniciado em',
         'ended_at' => 'finalizado em',
     ],

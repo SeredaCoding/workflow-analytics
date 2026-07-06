@@ -9,7 +9,7 @@ services:
       - .:/var/www
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/app.ini
     environment:
-      - APP_ENV=${APP_ENV:-local}
+      - APP_ENV=${APP_ENV:-production}
     depends_on: []
     networks:
       - workflow-network

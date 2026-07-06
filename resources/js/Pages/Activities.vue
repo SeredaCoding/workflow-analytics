@@ -12,12 +12,13 @@
                         <thead>
                             <tr class="border-b border-gray-100 dark:border-gray-800 text-left text-sm text-gray-500">
                                 <th class="px-4 py-3 font-medium whitespace-nowrap">Início</th>
+                                <th class="px-4 py-3 font-medium whitespace-nowrap">Fim</th>
                                 <th class="px-4 py-3 font-medium">Título</th>
                                 <th class="px-4 py-3 font-medium">Descrição</th>
                                 <th class="px-4 py-3 font-medium">Categoria</th>
                                 <th class="px-4 py-3 font-medium">Projeto</th>
                                 <th class="px-4 py-3 font-medium whitespace-nowrap">Prioridade</th>
-                                <th class="px-4 py-3 font-medium whitespace-nowrap">Energia</th>
+                                <th class="px-4 py-3 font-medium whitespace-nowrap">Dificuldade</th>
                                 <th class="px-4 py-3 font-medium whitespace-nowrap">Duração</th>
                                 <th class="px-4 py-3 font-medium">Status</th>
                                 <th class="px-4 py-3 font-medium w-20">Ações</th>
@@ -65,12 +66,12 @@
                                 <th class="px-4 py-2">
                                     <select v-model="filters.energy_level" @change="applyFilters"
                                         class="w-full text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white">
-                                        <option value="">Todos</option>
-                                        <option :value="1">1</option>
-                                        <option :value="2">2</option>
-                                        <option :value="3">3</option>
-                                        <option :value="4">4</option>
-                                        <option :value="5">5</option>
+                                        <option value="">Todas</option>
+                                        <option :value="1">1 - Muito Fácil</option>
+                                        <option :value="2">2 - Fácil</option>
+                                        <option :value="3">3 - Normal</option>
+                                        <option :value="4">4 - Difícil</option>
+                                        <option :value="5">5 - Muito Difícil</option>
                                     </select>
                                 </th>
                                 <th class="px-4 py-2">
@@ -89,6 +90,7 @@
                             <tr v-for="activity in activities.data" :key="activity.id"
                                 class="border-b border-gray-50 dark:border-gray-800/50 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/30">
                                 <td class="px-4 py-3 text-gray-500 font-mono whitespace-nowrap">{{ formatDate(activity.started_at) }}</td>
+                                <td class="px-4 py-3 text-gray-500 font-mono whitespace-nowrap">{{ formatDate(activity.ended_at) }}</td>
                                 <td class="px-4 py-3 font-medium max-w-[200px]">
                                     <div class="flex items-center gap-2" :title="activity.title">
                                         {{ truncate(activity.title, 24) }}
@@ -120,9 +122,9 @@
                                     <span v-else class="text-gray-400 text-xs">—</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    <span v-if="activity.energy_level" class="text-xs text-gray-500 font-mono">
-                                        {{ '●'.repeat(activity.energy_level) }}{{ '○'.repeat(5 - activity.energy_level) }}
-                                    </span>
+                                     <span v-if="activity.energy_level" class="text-xs text-gray-500 font-mono">
+                                         Dificuldade: {{ difficultyLabel(activity.energy_level) }}
+                                     </span>
                                     <span v-else class="text-gray-400 text-xs">—</span>
                                 </td>
                                 <td class="px-4 py-3 font-mono text-gray-500 whitespace-nowrap">{{ formatDuration(activity.duration_minutes) }}</td>
@@ -150,7 +152,7 @@
                                 </td>
                             </tr>
                             <tr v-if="activities.data?.length === 0">
-                                <td colspan="10" class="px-4 py-12 text-center text-gray-500">
+                                <td colspan="11" class="px-4 py-12 text-center text-gray-500">
                                     Nenhuma atividade encontrada.
                                 </td>
                             </tr>
@@ -309,5 +311,16 @@ function statusLabel(status) {
         completed: 'Concluído',
     }
     return map[status] || status
+}
+
+function difficultyLabel(level) {
+    const map = {
+        1: 'Muito Fácil',
+        2: 'Fácil',
+        3: 'Normal',
+        4: 'Difícil',
+        5: 'Muito Difícil',
+    }
+    return map[level] || level
 }
 </script>

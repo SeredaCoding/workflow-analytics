@@ -65,7 +65,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
+
+const page = usePage()
 
 const props = defineProps({
     inProgress: Object,
@@ -78,6 +80,25 @@ let timer = null
 
 const isInterruption = computed(() => props.inProgress?.type === 'interruption')
 
+function getLunchOverlapSeconds(startDate, endDate) {
+    const lunchStart = page.props.lunch_start
+    const lunchEnd = page.props.lunch_end
+    if (!lunchStart || !lunchEnd) return 0
+
+    const lunchStartToday = new Date(endDate)
+    const [lh, lm] = lunchStart.split(':')
+    lunchStartToday.setHours(parseInt(lh), parseInt(lm), 0, 0)
+
+    const lunchEndToday = new Date(endDate)
+    const [leh, lem] = lunchEnd.split(':')
+    lunchEndToday.setHours(parseInt(leh), parseInt(lem), 0, 0)
+
+    const overlapStart = Math.max(startDate.getTime(), lunchStartToday.getTime())
+    const overlapEnd = Math.min(endDate.getTime(), lunchEndToday.getTime())
+
+    return Math.max(0, Math.floor((overlapEnd - overlapStart) / 1000))
+}
+
 function updateElapsed() {
     if (!props.inProgress?.started_at) {
         elapsed.value = '00:00'
@@ -85,7 +106,8 @@ function updateElapsed() {
     }
     const start = new Date(props.inProgress.started_at).getTime()
     const now = Date.now()
-    const diff = Math.floor((now - start) / 1000)
+    const raw = Math.floor((now - start) / 1000)
+    const diff = Math.max(0, raw - getLunchOverlapSeconds(new Date(start), new Date(now)))
     const h = String(Math.floor(diff / 3600)).padStart(2, '0')
     const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0')
     const s = String(diff % 60).padStart(2, '0')

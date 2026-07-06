@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Category;
 use App\Models\Project;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -29,6 +30,12 @@ class HandleInertiaRequests extends Middleware
             'projects' => $request->user()
                 ? Project::where('user_id', $request->user()->id)->where('is_active', true)->get()
                 : Project::where('is_active', true)->get(),
+            'lunch_start' => $request->user()
+                ? Setting::where('user_id', $request->user()->id)->where('key', 'lunch_start')->value('value')
+                : null,
+            'lunch_end' => $request->user()
+                ? Setting::where('user_id', $request->user()->id)->where('key', 'lunch_end')->value('value')
+                : null,
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),

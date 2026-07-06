@@ -121,7 +121,7 @@ class MailReportController extends Controller
 
         fputcsv($handle, [
             'Título', 'Categoria', 'Projeto', 'Tipo', 'Status',
-            'Início', 'Fim', 'Duração (min)', 'Descrição', 'Prioridade', 'Energia',
+            'Início', 'Fim', 'Duração (min)', 'Descrição', 'Prioridade', 'Dificuldade',
         ]);
 
         foreach ($activities as $a) {
@@ -143,7 +143,7 @@ class MailReportController extends Controller
                 $duration,
                 $a->description ?? '',
                 $a->priority ?? '',
-                $a->energy_level ?? '',
+                $this->getDifficultyLabel($a->energy_level),
             ]);
         }
 
@@ -152,5 +152,17 @@ class MailReportController extends Controller
         fclose($handle);
 
         return $content;
+    }
+
+    private function getDifficultyLabel(?int $level): string
+    {
+        return match ($level) {
+            1 => 'Muito Fácil',
+            2 => 'Fácil',
+            3 => 'Normal',
+            4 => 'Difícil',
+            5 => 'Muito Difícil',
+            default => '',
+        };
     }
 }

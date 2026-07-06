@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Activity;
+use App\Services\LunchBreakService;
 use Carbon\Carbon;
 
 class ReportService
@@ -156,7 +157,7 @@ class ReportService
 
         return $activities->map(function ($a) {
             if ($a->duration_minutes === null && $a->status === 'in_progress' && $a->started_at) {
-                $a->duration_minutes = max(0, now()->diffInMinutes($a->started_at));
+                $a->duration_minutes = app(LunchBreakService::class)->getEffectiveDuration($a->started_at, now(), $a->user_id);
             }
             return $a;
         });

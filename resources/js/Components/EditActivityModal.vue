@@ -67,15 +67,15 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-500 mb-1">Energia</label>
+                        <label class="block text-xs text-gray-500 mb-1">Dificuldade</label>
                         <select v-model="form.energy_level"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white">
                             <option :value="null">—</option>
-                            <option :value="1">1 — Muito baixa</option>
-                            <option :value="2">2 — Baixa</option>
+                            <option :value="1">1 — Muito fácil</option>
+                            <option :value="2">2 — Fácil</option>
                             <option :value="3">3 — Normal</option>
-                            <option :value="4">4 — Alta</option>
-                            <option :value="5">5 — Muito alta</option>
+                            <option :value="4">4 — Difícil</option>
+                            <option :value="5">5 — Muito difícil</option>
                         </select>
                     </div>
                 </div>
@@ -119,6 +119,11 @@ function toDatetimeLocal(date) {
 }
 
 const isInProgress = computed(() => props.activity?.status === 'in_progress')
+
+const showNewCategory = ref(false)
+const showNewProject = ref(false)
+const newCategoryName = ref('')
+const newProjectName = ref('')
 
 const form = reactive({
     title: props.activity?.title || '',

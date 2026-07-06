@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\Category;
+use App\Services\LunchBreakService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -130,9 +131,14 @@ class ActivityController extends Controller
         }
 
         $this->userActivities()->inProgress()->each(function ($a) {
+            $now = now();
+            $start = Carbon::parse($a->started_at);
+            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
+
             $a->update([
                 'status' => 'paused',
-                'ended_at' => now(),
+                'ended_at' => $now,
+                'duration_minutes' => ($a->duration_minutes ?? 0) + $duration,
             ]);
         });
 
@@ -158,7 +164,7 @@ class ActivityController extends Controller
 
         $now = now();
         $start = Carbon::parse($activity->started_at);
-        $duration = $start->diffInMinutes($now);
+        $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
 
         $activity->update([
             'status' => 'paused',
@@ -192,7 +198,7 @@ class ActivityController extends Controller
 
         $now = now();
         $start = Carbon::parse($activity->started_at);
-        $duration = $start->diffInMinutes($now);
+        $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
 
         $activity->update([
             'status' => 'completed',
@@ -216,7 +222,7 @@ class ActivityController extends Controller
         if ($currentActivity) {
             $now = now();
             $start = Carbon::parse($currentActivity->started_at);
-            $duration = $start->diffInMinutes($now);
+            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
 
             $currentActivity->update([
                 'status' => 'paused',
@@ -296,7 +302,7 @@ class ActivityController extends Controller
             'status' => 'completed',
             'started_at' => $start,
             'ended_at' => $end,
-            'duration_minutes' => $start->diffInMinutes($end),
+            'duration_minutes' => app(LunchBreakService::class)->getEffectiveDuration($start, $end, auth()->id()),
         ]);
 
         return redirect()->back();
@@ -330,7 +336,7 @@ class ActivityController extends Controller
             if ($request->has('ended_at')) {
                 $end = Carbon::parse($validated['ended_at']);
                 $validated['ended_at'] = $end;
-                $validated['duration_minutes'] = $start->diffInMinutes($end);
+                $validated['duration_minutes'] = app(LunchBreakService::class)->getEffectiveDuration($start, $end, auth()->id());
             }
         }
 

@@ -27,6 +27,23 @@
                 </div>
 
                 <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Horário de Almoço</h3>
+                    <p class="text-xs text-gray-400">Se configurado, o intervalo de almoço será automaticamente descontado da duração das atividades.</p>
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-500 mb-1">Início</label>
+                            <input v-model="form.lunch_start" type="time"
+                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white" />
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-500 mb-1">Fim</label>
+                            <input v-model="form.lunch_end" type="time"
+                                class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Template do Relatório</h3>
                     <p class="text-xs text-gray-400">HTML puro. Placeholders disponíveis:
                         <code class="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1 rounded">&#123;&#123;month&#125;&#125;</code>,
@@ -97,6 +114,8 @@ const form = reactive({
     boss_email: props.settings?.boss_email || '',
     report_subject: props.settings?.report_subject || 'Relatório Mensal - {{month}}',
     report_template: props.settings?.report_template || defaultTemplate,
+    lunch_start: props.settings?.lunch_start || '',
+    lunch_end: props.settings?.lunch_end || '',
 })
 
 const sampleData = {
