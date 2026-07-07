@@ -1,5 +1,5 @@
 <template>
-    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/50" @click.self="$emit('close')">
+    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/20 backdrop-blur-sm" @click.self="$emit('close')">
         <div class="w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div class="p-4 border-b border-gray-100 dark:border-gray-800">
                 <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Motivo da interrupção</h3>

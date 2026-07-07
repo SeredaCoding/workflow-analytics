@@ -59,10 +59,73 @@ class ReportService
         }
 
         return $activities
-            ->groupBy('category.name')
-            ->map(function ($items, $category) {
+            ->groupBy(fn($a) => $a->category_id ?? 'none')
+            ->map(function ($items) {
+                $first = $items->first();
+                $cat = $first->category;
                 return [
-                    'name' => $category ?: 'Sem categoria',
+                    'name' => $cat?->name ?? 'Sem categoria',
+                    'color' => $cat?->color ?? '#6366f1',
+                    'minutes' => $items->sum('duration_minutes'),
+                    'count' => $items->count(),
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    public function projectDistribution(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
+    {
+        $bounds = $this->monthBounds($date);
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
+            ->where('started_at', '<=', $bounds['end'])
+            ->where('type', 'activity')
+            ->with('project')
+            ->get();
+
+        if ($includeInProgress) {
+            $activities = $this->fillInProgressDuration($activities, true);
+        }
+
+        return $activities
+            ->groupBy(fn($a) => $a->project_id ?? 'none')
+            ->map(function ($items) {
+                $first = $items->first();
+                $project = $first->project;
+                return [
+                    'name' => $project?->name ?? 'Sem projeto',
+                    'color' => $project?->color ?? '#6366f1',
+                    'minutes' => $items->sum('duration_minutes'),
+                    'count' => $items->count(),
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    public function contextDistribution(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
+    {
+        $bounds = $this->monthBounds($date);
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
+            ->where('started_at', '<=', $bounds['end'])
+            ->where('type', 'activity')
+            ->with('context')
+            ->get();
+
+        if ($includeInProgress) {
+            $activities = $this->fillInProgressDuration($activities, true);
+        }
+
+        return $activities
+            ->groupBy(fn($a) => $a->context_id ?? 'none')
+            ->map(function ($items) {
+                $first = $items->first();
+                $context = $first->context;
+                return [
+                    'name' => $context?->name ?? 'Sem módulo',
+                    'color' => $context?->color ?? '#6366f1',
                     'minutes' => $items->sum('duration_minutes'),
                     'count' => $items->count(),
                 ];

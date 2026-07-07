@@ -23,7 +23,7 @@ import { Link } from '@inertiajs/vue3';
             <div class="w-full max-w-sm">
                 <div class="lg:hidden flex flex-col items-center mb-8">
                     <Link href="/">
-                        <ApplicationLogo class="h-16 w-auto mb-3" static-src="/images/logo.png" />
+                        <ApplicationLogo class="h-17 w-auto mb-3" static-src="/images/logo.png" />
                     </Link>
                 </div>
 

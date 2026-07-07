@@ -62,10 +62,11 @@
                                             <div class="text-sm font-medium truncate" :class="item.status === 'in_progress' ? 'text-green-600 dark:text-green-400' : ''">
                                                 {{ item.title }}
                                             </div>
-                                            <div class="text-xs text-gray-500">
-                                                {{ item.category }}
-                                                <span v-if="item.project"> · {{ item.project }}</span>
-                                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ item.category }}
+                                <span v-if="item.project"> · {{ item.project }}</span>
+                                <span v-if="item.context"> · {{ item.context }}</span>
+                            </div>
                                         </div>
                                         <div class="flex items-center gap-2 shrink-0">
                                             <div class="text-sm font-mono tabular-nums" :class="item.status === 'in_progress' ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">

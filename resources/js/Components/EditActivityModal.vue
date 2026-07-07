@@ -1,5 +1,5 @@
 <template>
-    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/50" @click.self="$emit('close')">
+    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/20 backdrop-blur-sm" @click.self="$emit('close')">
         <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div class="p-4 border-b border-gray-100 dark:border-gray-800">
                 <input ref="titleInput" v-model="form.title"
@@ -12,33 +12,51 @@
                 <div>
                     <label class="block text-xs text-gray-500 mb-2">Categoria</label>
                     <div class="flex flex-wrap gap-2">
-                        <button v-for="cat in categories" :key="cat.id" @click="form.category_id = cat.id"
-                            class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
-                            :class="form.category_id === cat.id
-                                ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
-                            {{ cat.name }}
+                    <button v-for="cat in localCategories" :key="cat.id" @click="form.category_id = cat.id"
+                        class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
+                        :class="form.category_id === cat.id
+                            ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
+                        {{ cat.name }}
+                    </button>
+                        <button type="button" @click="showNewCategory = !showNewCategory"
+                            class="px-3 py-1.5 text-sm rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                            + Nova Categoria
                         </button>
+                        <transition name="fade">
+                            <div v-if="showNewCategory" class="w-full">
+                                <input v-model="newCategoryName" type="text" placeholder="Nome da nova categoria"
+                                    class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400"
+                                    @keyup.enter="addCategory" />
+                                <div class="flex gap-2 mt-2">
+                                    <button type="button" @click="addCategory" :disabled="!newCategoryName.trim()"
+                                        class="px-3 py-1 text-sm rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        Criar
+                                    </button>
+                                    <button type="button" @click="showNewCategory = false"
+                                        class="px-3 py-1 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </transition>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs text-gray-500 mb-2">Projeto <span class="text-gray-400">(opcional)</span></label>
-                    <div class="flex flex-wrap gap-2">
-                        <button v-for="proj in projects" :key="proj.id" @click="form.project_id = form.project_id === proj.id ? null : proj.id"
-                            class="px-3 py-1 text-xs rounded-full border transition-colors"
-                            :class="form.project_id === proj.id
-                                ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
-                            {{ proj.name }}
-                        </button>
-                    </div>
+                    <ProjectPicker :projects="localProjects" :model-value="form.project_id"
+                        @update:model-value="form.project_id = $event" @create="addProject" allow-create />
+                </div>
+                <div>
+                    <ModulePicker :modules="page.props.modules || []" :model-value="form.context_id"
+                        @update:model-value="form.context_id = $event" @create="addModule" allow-create />
                 </div>
 
                 <div>
                     <label class="block text-xs text-gray-500 mb-1">Descrição <span class="text-gray-400">(opcional)</span></label>
                     <textarea v-model="form.description" rows="2" placeholder="Adicione uma descrição..."
-                        class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white resize-none placeholder-gray-400"></textarea>
+                        class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400"></textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -59,8 +77,8 @@
                         <label class="block text-xs text-gray-500 mb-1">Prioridade</label>
                         <select v-model="form.priority"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white">
-                            <option value="">Normal</option>
                             <option value="low">Baixa</option>
+                            <option value="normal">Normal</option>
                             <option value="medium">Média</option>
                             <option value="high">Alta</option>
                             <option value="critical">Crítica</option>
@@ -98,10 +116,10 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
+import ProjectPicker from '@/Components/ProjectPicker.vue'
+import ModulePicker from '@/Components/ModulePicker.vue'
 
 const page = usePage()
-const categories = page.props.categories
-const projects = page.props.projects
 
 const props = defineProps({
     activity: Object,
@@ -121,20 +139,72 @@ function toDatetimeLocal(date) {
 const isInProgress = computed(() => props.activity?.status === 'in_progress')
 
 const showNewCategory = ref(false)
-const showNewProject = ref(false)
 const newCategoryName = ref('')
-const newProjectName = ref('')
+
+const localCategories = ref([...(page.props.categories || [])])
+const localProjects = ref([...(page.props.projects || [])])
 
 const form = reactive({
     title: props.activity?.title || '',
     category_id: props.activity?.category?.id || props.activity?.category_id || null,
     project_id: props.activity?.project?.id || props.activity?.project_id || null,
+    context_id: props.activity?.context?.id || props.activity?.context_id || null,
     description: props.activity?.description || '',
-    priority: props.activity?.priority || '',
+    priority: props.activity?.priority ?? 'normal',
     energy_level: props.activity?.energy_level || null,
     started_at: toDatetimeLocal(props.activity?.started_at),
     ended_at: toDatetimeLocal(props.activity?.ended_at),
 })
+
+async function addCategory() {
+    if (!newCategoryName.value.trim()) return
+
+    try {
+        const response = await window.axios.post('/api/categories', { name: newCategoryName.value.trim() })
+        if (response.status === 200 || response.status === 201) {
+            const newCat = response.data
+            localCategories.value.push(newCat)
+            form.category_id = newCat.id
+            showNewCategory.value = false
+            newCategoryName.value = ''
+        }
+    } catch (e) {
+        console.error('Erro ao criar categoria', e)
+        if (e.response && e.response.status === 409) {
+            alert('Já existe uma categoria com esse nome.')
+        }
+    }
+}
+
+async function addProject(name) {
+    if (!name.trim()) return
+
+    try {
+        const response = await window.axios.post('/api/projects', { name: name.trim() })
+        if (response.status === 200 || response.status === 201) {
+            const newProj = response.data
+            localProjects.value.push(newProj)
+            form.project_id = newProj.id
+        }
+    } catch (e) {
+        console.error('Erro ao criar projeto', e)
+        if (e.response && e.response.status === 409) {
+            alert('Já existe um projeto com esse nome.')
+        }
+    }
+}
+
+async function addModule(name) {
+    if (!name.trim()) return
+    try {
+        const response = await window.axios.post('/api/modules', { name: name.trim() })
+        if (response.status === 200 || response.status === 201) {
+            form.context_id = response.data.id
+        }
+    } catch (e) {
+        console.error('Erro ao criar módulo', e)
+    }
+}
 
 function submit() {
     if (!form.title.trim() || !form.category_id) return
@@ -143,6 +213,7 @@ function submit() {
         title: form.title.trim(),
         category_id: form.category_id,
         project_id: form.project_id || null,
+        context_id: form.context_id || null,
         description: form.description.trim() || null,
         priority: form.priority || null,
         energy_level: form.energy_level || null,

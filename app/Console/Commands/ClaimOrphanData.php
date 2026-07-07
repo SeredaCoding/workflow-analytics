@@ -3,9 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\Activity;
-use App\Models\Category;
-use App\Models\Project;
-use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Console\Command;
 
@@ -28,25 +25,13 @@ class ClaimOrphanData extends Command
             return self::FAILURE;
         }
 
-        $counts = [];
+        $count = Activity::whereNull('user_id')->update(['user_id' => $user->id]);
 
-        $counts['activities'] = Activity::whereNull('user_id')->update(['user_id' => $user->id]);
-        $counts['categories'] = Category::whereNull('user_id')->update(['user_id' => $user->id]);
-        $counts['projects'] = Project::whereNull('user_id')->update(['user_id' => $user->id]);
-        $counts['settings'] = Setting::whereNull('user_id')->update(['user_id' => $user->id]);
-
-        $total = array_sum($counts);
-        if ($total === 0) {
+        if ($count === 0) {
             $this->info('No orphan data found.');
-            return self::SUCCESS;
+        } else {
+            $this->info("Claimed $count orphan activities.");
         }
-
-        foreach ($counts as $type => $count) {
-            if ($count > 0) {
-                $this->line("  $type: $count");
-            }
-        }
-        $this->info("Total records claimed: $total");
 
         return self::SUCCESS;
     }

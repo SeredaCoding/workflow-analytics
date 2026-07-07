@@ -68,7 +68,7 @@
                                 </button>
                             </div>
                             <textarea v-model="form.report_template" rows="12" :disabled="!templateEditable" :readonly="!templateEditable"
-                                class="w-full text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white resize-none placeholder-gray-400"
+                                class="w-full text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400"
                                 :class="!templateEditable ? 'opacity-60 cursor-not-allowed' : ''"></textarea>
                         </div>
                         <div>

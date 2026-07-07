@@ -54,20 +54,9 @@ const form = useForm({
                 <InputError class="mt-2" :message="form.errors.name" />
             </div>
 
-            <div>
-                <InputLabel for="email" value="E-mail" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    readonly
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+            <div class="pb-2">
+                <InputLabel value="E-mail" />
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ form.email }}</p>
             </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">

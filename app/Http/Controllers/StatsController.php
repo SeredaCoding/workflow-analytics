@@ -19,22 +19,35 @@ class StatsController extends Controller
         $date = $this->parseMonth($request->input('month'));
         $userId = auth()->id();
 
-        $monthly = $this->reportService->monthlyData($userId, false, $date);
-        $categoryDistribution = $this->reportService->categoryDistribution($userId, false, $date);
-        $dailyBreakdown = $this->reportService->dailyBreakdown($userId, false, $date);
-        $topActivities = $this->reportService->topActivities($userId, false, $date);
+        $monthly = $this->reportService->monthlyData($userId, true, $date);
+        $categoryDistribution = $this->reportService->categoryDistribution($userId, true, $date);
+        $dailyBreakdown = $this->reportService->dailyBreakdown($userId, true, $date);
+        $topActivities = $this->reportService->topActivities($userId, true, $date);
+        $projectDistribution = $this->reportService->projectDistribution($userId, true, $date);
+        $contextDistribution = $this->reportService->contextDistribution($userId, true, $date);
 
         $totalMinutes = $monthly['total_minutes'] ?: 1;
 
-        $inProgress = Activity::where('user_id', $userId)->inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $monthStart = $date->copy()->startOfMonth();
+        $monthEnd = $date->copy()->endOfMonth();
+        $hasPrev = Activity::where('user_id', $userId)
+            ->where('started_at', '<', $monthStart)->exists();
+        $hasNext = Activity::where('user_id', $userId)
+            ->where('started_at', '>', $monthEnd)->exists();
+
+        $inProgress = Activity::where('user_id', $userId)->inProgress()->latest('started_at')->with(['category', 'project', 'context'])->first();
 
         return Inertia::render('Stats', [
             'month' => $date->format('Y-m'),
             'monthly' => $monthly,
             'categoryDistribution' => $categoryDistribution,
-            'dailyBreakdownHtml' => $this->reportService->buildDailyHtml($dailyBreakdown, true),
-            'weeklySummaryHtml' => $this->reportService->buildWeeklyHtml($dailyBreakdown, true, $date),
-            'topActivitiesHtml' => $this->reportService->buildTopActivitiesHtml($topActivities, $totalMinutes, true),
+            'dailyBreakdown' => $dailyBreakdown,
+            'topActivities' => $topActivities,
+            'totalMinutes' => $totalMinutes,
+            'projectDistribution' => $projectDistribution,
+            'contextDistribution' => $contextDistribution,
+            'hasPrev' => $hasPrev,
+            'hasNext' => $hasNext,
             'inProgress' => $inProgress ? [
                 'id' => $inProgress->id,
                 'title' => $inProgress->title,
@@ -43,6 +56,7 @@ class StatsController extends Controller
                 'category' => $inProgress->category?->name,
                 'category_color' => $inProgress->category?->color,
                 'project' => $inProgress->project?->name,
+                'context' => $inProgress->context?->name,
                 'started_at' => $inProgress->started_at->toIso8601String(),
             ] : null,
         ]);
@@ -80,15 +94,30 @@ class StatsController extends Controller
         $ref = $this->parseMonth($request->input('month'))->copy()->endOfMonth()->min(now());
         $days = collect(range(6, 0))->map(function ($i) use ($ref, $userId) {
             $date = $ref->copy()->subDays($i);
-            $activities = Activity::where('user_id', $userId)->whereDate('started_at', $date)->get();
+            $activities = Activity::where('user_id', $userId)
+                ->whereDate('started_at', $date)
+                ->with('category')
+                ->get();
+
+            $activities = $this->reportService->fillInProgressDuration($activities, true);
+
+            $categoryMinutes = $activities
+                ->where('type', 'activity')
+                ->groupBy(fn($a) => $a->category?->name ?? 'Sem categoria')
+                ->map(function ($items) {
+                    $first = $items->first();
+                    return [
+                        'minutes' => $items->sum('duration_minutes'),
+                        'color' => $first->category?->color ?? '#6366f1',
+                    ];
+                });
 
             return [
                 'date' => $date->format('Y-m-d'),
                 'label' => $date->translatedFormat('D'),
                 'total_minutes' => $activities->sum('duration_minutes'),
                 'interruptions' => $activities->where('type', 'interruption')->count(),
-                'development_minutes' => $activities->filter(fn($a) => $a->category?->type === 'development')->sum('duration_minutes'),
-                'support_minutes' => $activities->filter(fn($a) => $a->category?->type === 'support')->sum('duration_minutes'),
+                'categories' => $categoryMinutes,
             ];
         });
 
