@@ -18,7 +18,7 @@ class ActivityController extends Controller
 
     public function index(Request $request)
     {
-        $query = $this->userActivities()->with(['category', 'project', 'parent', 'children']);
+        $query = $this->userActivities()->with(['category', 'project', 'context', 'parent', 'children']);
 
         if ($search = $request->input('search')) {
             $query->where('title', 'like', "%{$search}%");
@@ -30,6 +30,10 @@ class ActivityController extends Controller
 
         if ($projectId = $request->input('project_id')) {
             $query->where('project_id', $projectId);
+        }
+
+        if ($contextId = $request->input('context_id')) {
+            $query->where('context_id', $contextId);
         }
 
         if ($status = $request->input('status')) {
@@ -65,11 +69,11 @@ class ActivityController extends Controller
             ->paginate((int) $perPage)
             ->withQueryString();
 
-        $inProgress = $this->userActivities()->inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $inProgress = $this->userActivities()->inProgress()->latest('started_at')->with(['category', 'project', 'context'])->first();
 
         return Inertia::render('Activities', [
             'activities' => $activities,
-            'filters' => $request->only(['search', 'category_id', 'project_id', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level', 'per_page']),
+            'filters' => $request->only(['search', 'category_id', 'project_id', 'context_id', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level', 'per_page']),
             'inProgress' => $inProgress ? [
                 'id' => $inProgress->id,
                 'title' => $inProgress->title,
@@ -78,6 +82,7 @@ class ActivityController extends Controller
                 'category' => $inProgress->category?->name,
                 'category_color' => $inProgress->category?->color,
                 'project' => $inProgress->project?->name,
+                'context' => $inProgress->context?->name,
                 'started_at' => $inProgress->started_at->toIso8601String(),
             ] : null,
         ]);
@@ -90,7 +95,7 @@ class ActivityController extends Controller
             'category_id' => 'required|exists:categories,id',
             'project_id' => 'nullable|exists:projects,id',
             'description' => 'nullable|string',
-            'priority' => 'nullable|string|in:low,medium,high,critical',
+            'priority' => 'nullable|string|in:low,normal,medium,high,critical',
             'source' => 'nullable|string',
             'person' => 'nullable|string',
             'type' => 'nullable|string|in:activity,interruption',
@@ -121,6 +126,7 @@ class ActivityController extends Controller
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'project_id' => 'nullable|exists:projects,id',
+            'context_id' => 'nullable|exists:activity_contexts,id',
             'description' => 'nullable|string|max:1000',
             'started_at' => 'nullable|date|before_or_equal:now',
         ]);
@@ -130,14 +136,14 @@ class ActivityController extends Controller
             $startedAt = Carbon::parse($startedAt);
         }
 
-        $this->userActivities()->inProgress()->each(function ($a) {
-            $now = now();
+        $this->userActivities()->inProgress()->each(function ($a) use ($startedAt) {
             $start = Carbon::parse($a->started_at);
-            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
+            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $startedAt ?? now(), auth()->id());
 
+            $a->pauses()->create(['paused_at' => $startedAt ?? now()]);
             $a->update([
                 'status' => 'paused',
-                'ended_at' => $now,
+                'ended_at' => $startedAt ?? now(),
                 'duration_minutes' => ($a->duration_minutes ?? 0) + $duration,
             ]);
         });
@@ -147,6 +153,7 @@ class ActivityController extends Controller
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
             'project_id' => $validated['project_id'] ?? null,
+            'context_id' => $validated['context_id'] ?? null,
             'description' => $validated['description'] ?? null,
             'started_at' => $startedAt ?? now(),
             'status' => 'in_progress',
@@ -156,34 +163,194 @@ class ActivityController extends Controller
         return redirect()->back();
     }
 
-    public function pause(Activity $activity)
+    public function pause(Request $request, Activity $activity)
     {
         if ($activity->user_id !== auth()->id()) {
             abort(403);
         }
 
-        $now = now();
+        $pausedAt = $request->input('paused_at') ? Carbon::parse($request->input('paused_at')) : now();
         $start = Carbon::parse($activity->started_at);
-        $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
+
+        $activity->pauses()->create([
+            'paused_at' => $pausedAt,
+        ]);
+
+        $duration = 0;
+        if ($activity->status === 'in_progress') {
+            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $pausedAt, auth()->id());
+        }
 
         $activity->update([
             'status' => 'paused',
-            'ended_at' => $now,
+            'ended_at' => $pausedAt,
             'duration_minutes' => ($activity->duration_minutes ?? 0) + $duration,
         ]);
 
         return redirect()->back();
     }
 
-    public function resume(Activity $activity)
+    public function reopen(Request $request, Activity $activity)
     {
         if ($activity->user_id !== auth()->id()) {
             abort(403);
         }
 
+        $now = now();
+
+        $this->userActivities()->inProgress()->each(function ($a) use ($now) {
+            $start = Carbon::parse($a->started_at);
+            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
+            $a->pauses()->create(['paused_at' => $now]);
+            $a->update([
+                'status' => 'paused',
+                'ended_at' => $now,
+                'duration_minutes' => ($a->duration_minutes ?? 0) + $duration,
+            ]);
+        });
+
+        Activity::create([
+            'user_id' => auth()->id(),
+            'title' => $activity->title,
+            'description' => $activity->description,
+            'category_id' => $activity->category_id,
+            'project_id' => $activity->project_id,
+            'priority' => $activity->priority ?? 'normal',
+            'energy_level' => $activity->energy_level,
+            'type' => 'activity',
+            'status' => 'in_progress',
+            'started_at' => $now,
+            'parent_id' => $activity->id,
+        ]);
+
+        return redirect()->back();
+    }
+
+    public function detail(Activity $activity)
+    {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $root = $activity->parent ?? $activity;
+
+        $sessions = $this->userActivities()
+            ->where(function ($q) use ($root, $activity) {
+                $q->where('id', $root->id)
+                  ->orWhere('parent_id', $root->id);
+            })
+            ->with(['category', 'project', 'context', 'pauses'])
+            ->orderBy('started_at')
+            ->get();
+
+        $totalDuration = $sessions->sum('duration_minutes');
+        $totalPauseDuration = $sessions->flatMap->pauses->sum('duration_minutes');
+        $sessionCount = $sessions->count();
+
+        $activity->load(['category', 'project', 'context', 'pauses']);
+
+        $events = [];
+        foreach ($sessions as $s) {
+            $events[] = [
+                'type' => 'started', 'at' => $s->started_at,
+                'activity_id' => $s->id,
+                'description' => 'Sessão iniciada',
+            ];
+
+            foreach ($s->pauses as $pause) {
+                $events[] = [
+                    'type' => 'paused', 'at' => $pause->paused_at,
+                    'activity_id' => $s->id,
+                    'description' => 'Pausada',
+                ];
+                if ($pause->resumed_at) {
+                    $events[] = [
+                        'type' => 'resumed', 'at' => $pause->resumed_at,
+                        'activity_id' => $s->id,
+                        'description' => 'Retomada',
+                    ];
+                }
+            }
+
+            if ($s->ended_at) {
+                $events[] = [
+                    'type' => 'completed', 'at' => $s->ended_at,
+                    'activity_id' => $s->id,
+                    'description' => 'Concluída',
+                ];
+            }
+        }
+
+        for ($i = 1; $i < $sessions->count(); $i++) {
+            $child = $sessions[$i];
+            if ($child->parent_id) {
+                $events[] = [
+                    'type' => 'reopened', 'at' => $child->started_at,
+                    'activity_id' => $child->parent_id,
+                    'description' => 'Reaberta',
+                ];
+            }
+        }
+
+        usort($events, fn($a, $b) => $a['at'] <=> $b['at']);
+
+        return response()->json([
+            'activity' => $activity,
+            'sessions' => $sessions->map(fn($s) => [
+                'id' => $s->id,
+                'title' => $s->title,
+                'started_at' => $s->started_at,
+                'ended_at' => $s->ended_at,
+                'duration_minutes' => $s->duration_minutes,
+                'status' => $s->status,
+                'category' => $s->category,
+                'project' => $s->project,
+            ]),
+            'events' => $events,
+            'stats' => [
+                'total_duration' => $totalDuration,
+                'total_pause_duration' => $totalPauseDuration,
+                'session_count' => $sessionCount,
+                'average_session' => $sessionCount > 0 ? round($totalDuration / $sessionCount) : 0,
+            ],
+        ]);
+    }
+
+    public function resume(Request $request, Activity $activity)
+    {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($activity->status !== 'paused') {
+            abort(422, 'Apenas atividades pausadas podem ser retomadas.');
+        }
+
+        $resumedAt = $request->input('resumed_at') ? Carbon::parse($request->input('resumed_at')) : now();
+
+        $openPause = $activity->pauses()->whereNull('resumed_at')->latest('paused_at')->first();
+        if ($openPause) {
+            $pauseStart = Carbon::parse($openPause->paused_at);
+            $openPause->update([
+                'resumed_at' => $resumedAt,
+                'duration_minutes' => $pauseStart->diffInMinutes($resumedAt),
+            ]);
+        }
+
+        $this->userActivities()->inProgress()->where('id', '!=', $activity->id)->each(function ($a) use ($resumedAt) {
+            $start = Carbon::parse($a->started_at);
+            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $resumedAt, auth()->id());
+
+            $a->pauses()->create(['paused_at' => $resumedAt]);
+            $a->update([
+                'status' => 'paused',
+                'ended_at' => $resumedAt,
+                'duration_minutes' => ($a->duration_minutes ?? 0) + $duration,
+            ]);
+        });
+
         $activity->update([
             'status' => 'in_progress',
-            'started_at' => now(),
             'ended_at' => null,
         ]);
 
@@ -197,14 +364,27 @@ class ActivityController extends Controller
         }
 
         $now = now();
-        $start = Carbon::parse($activity->started_at);
-        $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
 
-        $activity->update([
+        $activity->pauses()->whereNull('resumed_at')->each(function ($pause) use ($now) {
+            $pauseStart = Carbon::parse($pause->paused_at);
+            $pause->update([
+                'resumed_at' => $now,
+                'duration_minutes' => $pauseStart->diffInMinutes($now),
+            ]);
+        });
+
+        $updates = [
             'status' => 'completed',
             'ended_at' => $now,
-            'duration_minutes' => ($activity->duration_minutes ?? 0) + $duration,
-        ]);
+        ];
+
+        if ($activity->status === 'in_progress') {
+            $start = Carbon::parse($activity->started_at);
+            $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
+            $updates['duration_minutes'] = max(1, $duration);
+        }
+
+        $activity->update($updates);
 
         return redirect()->back();
     }
@@ -224,6 +404,7 @@ class ActivityController extends Controller
             $start = Carbon::parse($currentActivity->started_at);
             $duration = app(LunchBreakService::class)->getEffectiveDuration($start, $now, auth()->id());
 
+            $currentActivity->pauses()->create(['paused_at' => $now]);
             $currentActivity->update([
                 'status' => 'paused',
                 'ended_at' => $now,
@@ -284,6 +465,7 @@ class ActivityController extends Controller
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'project_id' => 'nullable|exists:projects,id',
+            'context_id' => 'nullable|exists:activity_contexts,id',
             'started_at' => 'required|date',
             'ended_at' => 'required|date|after:started_at',
             'description' => 'nullable|string|max:1000',
@@ -297,6 +479,7 @@ class ActivityController extends Controller
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
             'project_id' => $validated['project_id'] ?? null,
+            'context_id' => $validated['context_id'] ?? null,
             'description' => $validated['description'] ?? null,
             'type' => 'activity',
             'status' => 'completed',
@@ -318,8 +501,9 @@ class ActivityController extends Controller
             'title' => 'string|max:255',
             'category_id' => 'exists:categories,id',
             'project_id' => 'nullable|exists:projects,id',
+            'context_id' => 'nullable|exists:activity_contexts,id',
             'description' => 'nullable|string',
-            'priority' => 'nullable|string|in:low,medium,high,critical',
+            'priority' => 'nullable|string|in:low,normal,medium,high,critical',
             'source' => 'nullable|string',
             'person' => 'nullable|string',
             'is_planned' => 'boolean',
@@ -337,6 +521,12 @@ class ActivityController extends Controller
                 $end = Carbon::parse($validated['ended_at']);
                 $validated['ended_at'] = $end;
                 $validated['duration_minutes'] = app(LunchBreakService::class)->getEffectiveDuration($start, $end, auth()->id());
+            }
+        }
+
+        foreach (['priority', 'title', 'status', 'type', 'user_id'] as $field) {
+            if (array_key_exists($field, $validated) && $validated[$field] === null) {
+                unset($validated[$field]);
             }
         }
 

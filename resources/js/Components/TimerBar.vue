@@ -25,6 +25,13 @@
                     <span class="text-sm font-mono tabular-nums"
                         :class="isInterruption ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">{{ elapsed }}</span>
                 </div>
+
+                <div v-else-if="latestPaused" class="flex items-center gap-3 px-4 py-1.5 rounded-lg bg-yellow-50 dark:bg-yellow-950/30">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500" />
+                    <span class="text-sm font-medium text-yellow-700 dark:text-yellow-300">{{ latestPaused.title }}</span>
+                    <span class="text-xs px-1.5 py-0.5 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-300 font-medium">Pausado</span>
+                    <span v-if="latestPaused.project" class="text-xs text-yellow-600 dark:text-yellow-400">· {{ latestPaused.project }}</span>
+                </div>
             </div>
 
             <div v-if="inProgress" class="flex items-center gap-2">
@@ -59,6 +66,23 @@
                     </form>
                 </template>
             </div>
+
+            <div v-else-if="latestPaused" class="flex items-center gap-2">
+                <form @submit.prevent="resumeActivity">
+                    <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-950/50 transition-colors font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Resumir
+                    </button>
+                </form>
+                <form @submit.prevent="stopActivityPaused">
+                    <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                        Parar
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </template>
@@ -71,6 +95,7 @@ const page = usePage()
 
 const props = defineProps({
     inProgress: Object,
+    latestPaused: Object,
 })
 
 defineEmits(['start', 'interrupt', 'manual'])
@@ -136,6 +161,24 @@ function resolveInterruption(e) {
     e.preventDefault()
     if (props.inProgress?.id) {
         router.post(`/api/activities/${props.inProgress.id}/resolve-interruption`, {}, {
+            preserveState: false,
+        })
+    }
+}
+
+function resumeActivity(e) {
+    e.preventDefault()
+    if (props.latestPaused?.id) {
+        router.post(`/api/activities/${props.latestPaused.id}/resume`, {}, {
+            preserveState: false,
+        })
+    }
+}
+
+function stopActivityPaused(e) {
+    e.preventDefault()
+    if (props.latestPaused?.id) {
+        router.post(`/api/activities/${props.latestPaused.id}/stop`, {}, {
             preserveState: false,
         })
     }

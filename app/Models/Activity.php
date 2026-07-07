@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Activity extends Model
 {
     protected $fillable = [
-        'user_id', 'type', 'category_id', 'project_id', 'parent_id',
+        'user_id', 'type', 'category_id', 'project_id', 'context_id', 'parent_id',
         'title', 'description', 'priority', 'source', 'person',
         'tags', 'status', 'started_at', 'ended_at', 'duration_minutes',
         'is_planned', 'energy_level', 'notes',
@@ -42,6 +42,11 @@ class Activity extends Model
         return $this->belongsTo(Project::class);
     }
 
+    public function context(): BelongsTo
+    {
+        return $this->belongsTo(ActivityContext::class, 'context_id');
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
@@ -50,6 +55,11 @@ class Activity extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
+    }
+
+    public function pauses(): HasMany
+    {
+        return $this->hasMany(ActivityPause::class);
     }
 
     public function scopeToday($query)
