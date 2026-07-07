@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
     protected $fillable = [
-        'user_id', 'name', 'slug', 'color', 'is_active',
+        'user_id', 'name', 'slug', 'color', 'is_active', 'visibility', 'description',
     ];
 
     public function user(): BelongsTo
@@ -20,5 +21,15 @@ class Project extends Model
     public function activities(): HasMany
     {
         return $this->hasMany(Activity::class);
+    }
+
+    public function sectors(): BelongsToMany
+    {
+        return $this->belongsToMany(Sector::class, 'project_sector');
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'project_user');
     }
 }

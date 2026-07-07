@@ -13,13 +13,21 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
+        $slug = \Illuminate\Support\Str::slug($validated['name']);
+
+        if (Category::where('slug', $slug)->exists()) {
+            return response()->json(['message' => 'Já existe uma categoria com esse nome.'], 409);
+        }
+
         $category = Category::create([
-            'user_id' => auth()->id(),
             'name' => $validated['name'],
-            'slug' => \Illuminate\Support\Str::slug($validated['name']),
+            'slug' => $slug,
             'color' => '#6366f1',
             'is_active' => true,
+            'visibility' => 'user',
         ]);
+
+        $category->users()->attach(auth()->id());
 
         return response()->json([
             'id' => $category->id,

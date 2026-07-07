@@ -32,12 +32,22 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
     public function isAdmin(): bool
     {
-        return $this->role_id === 3;
+        return in_array($this->role_id, [3, 4]);
+    }
+
+    public function isDev(): bool
+    {
+        return $this->role_id === 4;
+    }
+
+    public function isSupport(): bool
+    {
+        return $this->role_id === 5;
     }
 
     public function isSupervisor(): bool
     {
-        return $this->role_id === 2 || $this->isAdmin();
+        return in_array($this->role_id, [2, 3, 4]);
     }
 
     public function isUser(): bool
