@@ -13,6 +13,13 @@ class Project extends Model
         'user_id', 'name', 'slug', 'color', 'is_active', 'visibility', 'description',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -31,5 +38,10 @@ class Project extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'project_user');
+    }
+
+    public function links(): HasMany
+    {
+        return $this->hasMany(ProjectLink::class)->orderBy('sort_order');
     }
 }

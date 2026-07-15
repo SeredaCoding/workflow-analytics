@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ProjectController extends Controller
 {
@@ -98,7 +99,7 @@ class ProjectController extends Controller
             abort(404);
         }
 
-        $project->load(['sectors', 'users']);
+        $project->load(['sectors', 'users', 'links']);
 
         $activitiesQuery = Activity::where('project_id', $project->id)
             ->with(['user', 'category'])
@@ -196,5 +197,32 @@ class ProjectController extends Controller
             'monthlyHistory' => $monthlyHistory,
             'filters' => $request->only(['search']),
         ]);
+    }
+
+    public function update(Request $request, Project $project)
+    {
+        $user = auth()->user();
+
+        $canEdit = $user->isAdmin()
+            || $project->users()->where('user_id', $user->id)->exists()
+            || ($project->visibility === 'sector' && $user->sector_id && $project->sectors()->where('id', $user->sector_id)->exists());
+
+        if (!$canEdit) {
+            abort(403, 'Você não pode editar este projeto.');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:10000',
+            'color' => 'nullable|string|max:7',
+        ]);
+
+        $project->update([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'color' => $validated['color'] ?? '#6366f1',
+        ]);
+
+        return redirect()->back()->with('success', 'Projeto atualizado com sucesso!');
     }
 }
