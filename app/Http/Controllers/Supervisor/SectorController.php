@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Supervisor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
+use App\Models\Sector;
 use App\Services\ReportService;
 use Carbon\Carbon;
 use Inertia\Inertia;
@@ -17,15 +18,36 @@ class SectorController extends Controller
 
     public function index(Request $request)
     {
-        $supervisor = auth()->user();
+        $user = auth()->user();
         $date = $this->parseMonth($request->input('month'));
-        $sectors = $supervisor->supervisedSectors()->with('users')->get();
 
-        $users = $sectors->flatMap->users;
-        $userIds = $users->pluck('id');
+        if ($user->isAdmin()) {
+            $sectors = Sector::with('users')->get();
+        } else {
+            $sectors = $user->supervisedSectors()->with('users')->get();
+        }
 
-        $usersData = $users->map(function ($user) use ($date) {
+        $allUsers = $sectors->flatMap->users->unique('id');
+        $userIds = $allUsers->pluck('id');
+
+        $totals = [
+            'development_minutes' => 0,
+            'support_minutes' => 0,
+            'meeting_minutes' => 0,
+            'avg_focus_sum' => 0,
+            'avg_focus_count' => 0,
+        ];
+
+        $usersData = $allUsers->map(function ($user) use ($date, &$totals) {
             $monthly = $this->reportService->monthlyData($user->id, false, $date);
+
+            $totals['development_minutes'] += $monthly['development_minutes'];
+            $totals['support_minutes'] += $monthly['support_minutes'];
+            $totals['meeting_minutes'] += $monthly['meeting_minutes'];
+            if ($monthly['avg_focus_minutes'] > 0) {
+                $totals['avg_focus_sum'] += $monthly['avg_focus_minutes'];
+                $totals['avg_focus_count']++;
+            }
 
             $inProgress = Activity::where('user_id', $user->id)
                 ->inProgress()
@@ -40,6 +62,9 @@ class SectorController extends Controller
                 'sector' => $user->sector?->name,
                 'total_minutes' => $monthly['total_minutes'],
                 'total_hours' => $monthly['total_hours'],
+                'dev_hours' => round($monthly['development_minutes'] / 60, 1),
+                'sup_hours' => round($monthly['support_minutes'] / 60, 1),
+                'mtg_hours' => round($monthly['meeting_minutes'] / 60, 1),
                 'interruptions' => $monthly['interruptions'],
                 'inProgress' => $inProgress ? [
                     'id' => $inProgress->id,
@@ -59,7 +84,13 @@ class SectorController extends Controller
             'total_hours' => round($totalMinutes / 60, 1),
             'total_minutes' => $totalMinutes,
             'active_users' => $activeUsers,
-            'total_users' => $users->count(),
+            'total_users' => $allUsers->count(),
+            'dev_hours' => round($totals['development_minutes'] / 60, 1),
+            'support_hours' => round($totals['support_minutes'] / 60, 1),
+            'meeting_hours' => round($totals['meeting_minutes'] / 60, 1),
+            'avg_focus' => $totals['avg_focus_count'] > 0
+                ? round($totals['avg_focus_sum'] / $totals['avg_focus_count'])
+                : 0,
         ]);
     }
 

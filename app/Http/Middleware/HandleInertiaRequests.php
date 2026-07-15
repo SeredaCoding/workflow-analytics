@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\ActivityContext;
 use App\Models\Category;
 use App\Models\Faq;
+use App\Models\FaqTopic;
 use App\Models\Project;
 use App\Models\Setting;
 use Illuminate\Http\Request;
@@ -76,11 +77,13 @@ class HandleInertiaRequests extends Middleware
                 ? Activity::where('user_id', $request->user()->id)->exists()
                 : false,
             'modules' => ActivityContext::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
-            'faqs' => Faq::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(),
+            'faqs' => Faq::with('topic')->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(),
+            'faqTopics' => FaqTopic::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),
             ],
+            'app_version' => config('app.version'),
         ];
     }
 }

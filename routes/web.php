@@ -3,14 +3,17 @@
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\FaqController as AdminFaqController;
+use App\Http\Controllers\Admin\FaqTopicController as AdminFaqTopicController;
 use App\Http\Controllers\Admin\ModuleController as AdminModuleController;
 use App\Http\Controllers\Admin\ProblemReportController as AdminProblemReportController;
 use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
 use App\Http\Controllers\Admin\SectorController as AdminSectorController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\FaqClickController;
 use App\Http\Controllers\Api\FaqController as ApiFaqController;
 use App\Http\Controllers\Api\ModuleController as ApiModuleController;
 use App\Http\Controllers\Api\ProblemReportController as ApiProblemReportController;
+use App\Http\Controllers\Api\ProjectLinkController as ApiProjectLinkController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailReportController;
@@ -51,9 +54,10 @@ use Illuminate\Support\Facades\Route;
             Route::post('/reports/send-monthly', [MailReportController::class, 'send'])->name('api.reports.send-monthly');
             Route::post('/report-problem', [ApiProblemReportController::class, 'store'])->name('api.report-problem');
             Route::get('/faqs', [ApiFaqController::class, 'index'])->name('api.faqs.index');
+            Route::post('/faqs/{faq}/click', FaqClickController::class)->name('api.faqs.click');
         });
 
-        Route::resource('activities', ActivityController::class)->except(['index', 'show']);
+        Route::resource('activities', ActivityController::class)->except(['index', 'show', 'create', 'edit']);
 
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -61,6 +65,10 @@ use Illuminate\Support\Facades\Route;
 
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
         Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+        Route::put('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
+        Route::post('/projects/{project}/links', [ApiProjectLinkController::class, 'store'])->name('api.projects.links.store');
+        Route::delete('/projects/{project}/links/{link}', [ApiProjectLinkController::class, 'destroy'])->name('api.projects.links.destroy');
+        Route::post('/projects/{project}/links/{link}/refresh', [ApiProjectLinkController::class, 'refresh'])->name('api.projects.links.refresh');
 
         Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
             Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
@@ -84,9 +92,14 @@ use Illuminate\Support\Facades\Route;
             Route::post('/faqs', [AdminFaqController::class, 'store'])->name('faqs.store');
             Route::put('/faqs/{faq}', [AdminFaqController::class, 'update'])->name('faqs.update');
             Route::delete('/faqs/{faq}', [AdminFaqController::class, 'destroy'])->name('faqs.destroy');
+            Route::get('/faq-topics', [AdminFaqTopicController::class, 'index'])->name('faq-topics.index');
+            Route::post('/faq-topics', [AdminFaqTopicController::class, 'store'])->name('faq-topics.store');
+            Route::put('/faq-topics/{topic}', [AdminFaqTopicController::class, 'update'])->name('faq-topics.update');
+            Route::delete('/faq-topics/{topic}', [AdminFaqTopicController::class, 'destroy'])->name('faq-topics.destroy');
             Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
-            Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
             Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+            Route::get('/problem-reports', [AdminProblemReportController::class, 'index'])->name('problem-reports.index');
+            Route::put('/problem-reports/{report}', [AdminProblemReportController::class, 'update'])->name('problem-reports.update');
         });
 
         Route::middleware('supervisor')->prefix('supervisor')->name('supervisor.')->group(function () {
@@ -101,11 +114,8 @@ use Illuminate\Support\Facades\Route;
             Route::delete('/projects/{project}/users/{user}', [SupervisorProjectController::class, 'removeUser'])->name('projects.remove-user');
         });
 
-        Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
-            Route::get('/problem-reports', [AdminProblemReportController::class, 'index'])->name('problem-reports.index');
-            Route::put('/problem-reports/{report}', [AdminProblemReportController::class, 'update'])->name('problem-reports.update');
-            Route::delete('/problem-reports/{report}', [AdminProblemReportController::class, 'destroy'])->name('problem-reports.destroy');
-        });
+        Route::get('/admin/problem-reports/{report}/images/{index}', [AdminProblemReportController::class, 'showImage'])
+            ->name('admin.problem-reports.images');
     });
 
 require __DIR__.'/auth.php';

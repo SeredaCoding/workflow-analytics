@@ -24,15 +24,21 @@ class ActivityController extends Controller
             $query->where('title', 'like', "%{$search}%");
         }
 
-        if ($categoryId = $request->input('category_id')) {
+        if ($categoryIds = $request->input('category_ids')) {
+            $query->whereIn('category_id', (array) $categoryIds);
+        } elseif ($categoryId = $request->input('category_id')) {
             $query->where('category_id', $categoryId);
         }
 
-        if ($projectId = $request->input('project_id')) {
+        if ($projectIds = $request->input('project_ids')) {
+            $query->whereIn('project_id', (array) $projectIds);
+        } elseif ($projectId = $request->input('project_id')) {
             $query->where('project_id', $projectId);
         }
 
-        if ($contextId = $request->input('context_id')) {
+        if ($contextIds = $request->input('context_ids')) {
+            $query->whereIn('context_id', (array) $contextIds);
+        } elseif ($contextId = $request->input('context_id')) {
             $query->where('context_id', $contextId);
         }
 
@@ -73,7 +79,7 @@ class ActivityController extends Controller
 
         return Inertia::render('Activities', [
             'activities' => $activities,
-            'filters' => $request->only(['search', 'category_id', 'project_id', 'context_id', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level', 'per_page']),
+            'filters' => $request->only(['search', 'category_id', 'category_ids', 'project_id', 'project_ids', 'context_id', 'context_ids', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level', 'per_page']),
             'inProgress' => $inProgress ? [
                 'id' => $inProgress->id,
                 'title' => $inProgress->title,
@@ -169,7 +175,7 @@ class ActivityController extends Controller
             abort(403);
         }
 
-        $pausedAt = $request->input('paused_at') ? Carbon::parse($request->input('paused_at')) : now();
+        $pausedAt = $request->input('paused_at') ? Carbon::parse($request->validate(['paused_at' => 'nullable|date'])['paused_at'] ?? now()) : now();
         $start = Carbon::parse($activity->started_at);
 
         $activity->pauses()->create([
@@ -326,14 +332,14 @@ class ActivityController extends Controller
             abort(422, 'Apenas atividades pausadas podem ser retomadas.');
         }
 
-        $resumedAt = $request->input('resumed_at') ? Carbon::parse($request->input('resumed_at')) : now();
+        $resumedAt = $request->input('resumed_at') ? Carbon::parse($request->validate(['resumed_at' => 'nullable|date'])['resumed_at'] ?? now()) : now();
 
         $openPause = $activity->pauses()->whereNull('resumed_at')->latest('paused_at')->first();
         if ($openPause) {
             $pauseStart = Carbon::parse($openPause->paused_at);
             $openPause->update([
                 'resumed_at' => $resumedAt,
-                'duration_minutes' => $pauseStart->diffInMinutes($resumedAt),
+                'duration_minutes' => (int) $pauseStart->diffInMinutes($resumedAt),
             ]);
         }
 
@@ -349,9 +355,19 @@ class ActivityController extends Controller
             ]);
         });
 
-        $activity->update([
+        Activity::create([
+            'user_id' => auth()->id(),
+            'title' => $activity->title,
+            'description' => $activity->description,
+            'category_id' => $activity->category_id,
+            'project_id' => $activity->project_id,
+            'context_id' => $activity->context_id,
+            'priority' => $activity->priority ?? 'normal',
+            'energy_level' => $activity->energy_level,
+            'type' => 'activity',
             'status' => 'in_progress',
-            'ended_at' => null,
+            'started_at' => $resumedAt,
+            'parent_id' => $activity->id,
         ]);
 
         return redirect()->back();
@@ -369,7 +385,7 @@ class ActivityController extends Controller
             $pauseStart = Carbon::parse($pause->paused_at);
             $pause->update([
                 'resumed_at' => $now,
-                'duration_minutes' => $pauseStart->diffInMinutes($now),
+                'duration_minutes' => (int) $pauseStart->diffInMinutes($now),
             ]);
         });
 
@@ -411,7 +427,10 @@ class ActivityController extends Controller
                 'duration_minutes' => ($currentActivity->duration_minutes ?? 0) + $duration,
             ]);
 
-            $interruptionCategoryId = Category::where('slug', 'interruption')->value('id');
+            $interruptionCategoryId = Category::firstOrCreate(
+                ['slug' => 'interruption'],
+                ['name' => 'Interrupção', 'color' => '#ef4444', 'type' => 'interruption']
+            )->id;
 
             Activity::create([
                 'user_id' => auth()->id(),

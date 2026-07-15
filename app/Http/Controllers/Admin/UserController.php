@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Sector;
 use App\Models\User;
-use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class UserController extends Controller
 {
@@ -56,6 +56,12 @@ class UserController extends Controller
         ]);
 
         $user->update($validated);
+
+        if ((int) $validated['role_id'] === 2 && $user->sector_id) {
+            Sector::where('id', $user->sector_id)
+                ->whereNull('supervisor_id')
+                ->update(['supervisor_id' => $user->id]);
+        }
 
         return redirect()->route('admin.users.index')->with('success', 'Usuário atualizado com sucesso!');
     }

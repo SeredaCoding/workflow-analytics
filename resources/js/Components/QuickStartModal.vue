@@ -1,6 +1,6 @@
 <template>
     <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/20 backdrop-blur-sm" @click.self="$emit('close')">
-        <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800">
             <div class="p-4 border-b border-gray-100 dark:border-gray-800">
                 <input ref="titleInput" v-model="form.title"
                     placeholder="O que você vai fazer?"

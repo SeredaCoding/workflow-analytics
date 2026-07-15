@@ -4,7 +4,7 @@
             <div class="flex items-end justify-between">
                 <div>
                     <h2 class="text-2xl font-bold">Dashboard</h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                         {{ dateDisplay }}
                     </p>
                 </div>

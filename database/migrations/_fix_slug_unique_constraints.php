@@ -8,11 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('categories', function (Blueprint $table) {
-            $table->dropUnique('categories_slug_unique');
-            $table->unique(['user_id', 'slug'], 'categories_user_id_slug_unique');
-        });
-
         Schema::table('projects', function (Blueprint $table) {
             $table->dropUnique('projects_slug_unique');
             $table->unique(['user_id', 'slug'], 'projects_user_id_slug_unique');
@@ -21,11 +16,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('categories', function (Blueprint $table) {
-            $table->dropUnique('categories_user_id_slug_unique');
-            $table->unique('slug', 'categories_slug_unique');
-        });
-
         Schema::table('projects', function (Blueprint $table) {
             $table->dropUnique('projects_user_id_slug_unique');
             $table->unique('slug', 'projects_slug_unique');

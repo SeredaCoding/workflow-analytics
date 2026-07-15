@@ -12,6 +12,14 @@ class Category extends Model
         'name', 'slug', 'color', 'icon', 'type', 'sort_order', 'is_active', 'visibility',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'sort_order' => 'integer',
+        ];
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(Activity::class);

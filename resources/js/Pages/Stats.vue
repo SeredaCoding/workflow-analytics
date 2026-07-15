@@ -310,7 +310,7 @@ const projectChartData = computed(() => ({
     labels: props.projectDistribution?.map(p => p.name) || [],
     datasets: [{
         data: props.projectDistribution?.map(p => p.minutes) || [],
-        backgroundColor: props.projectDistribution?.map(p => p.color && p.color !== '#6366f1' ? p.color : projectColor(p.name)) || [],
+        backgroundColor: props.projectDistribution?.map(p => p.color || projectColor(p.name)) || [],
         borderWidth: 0,
         hoverOffset: 6,
         borderRadius: 4,
@@ -498,12 +498,11 @@ async function doSend(includeInProgress) {
     statusMessage.value = ''
     statusError.value = false
     try {
-        const res = await fetch('/api/reports/send-monthly', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ include_in_progress: includeInProgress, month: currentMonth.value }),
+        const res = await window.axios.post('/api/reports/send-monthly', {
+            include_in_progress: includeInProgress,
+            month: currentMonth.value,
         })
-        const data = await res.json()
+        const data = res.data
         if (data.success) {
             statusMessage.value = data.success
             statusError.value = false

@@ -23,7 +23,7 @@ class Activity extends Model
             'ended_at' => 'datetime',
             'is_planned' => 'boolean',
             'energy_level' => 'integer',
-            'duration_minutes' => 'integer',
+            'duration_minutes' => 'float',
         ];
     }
 
