@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Faq;
+use App\Models\FaqTopic;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -11,7 +12,7 @@ class FaqController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Faq::orderBy('sort_order')->orderBy('id');
+        $query = Faq::with('topic')->orderBy('sort_order')->orderBy('id');
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -22,9 +23,14 @@ class FaqController extends Controller
 
         $faqs = $query->paginate(20)->withQueryString();
 
+        $topClickFaqs = Faq::where('clicks', '>', 0)->orderBy('clicks', 'desc')->take(10)->get();
+
         return Inertia::render('Admin/Faqs', [
             'faqs' => $faqs,
             'filters' => $request->only(['search']),
+            'topics' => FaqTopic::orderBy('sort_order')->orderBy('name')->get(),
+            'topClickFaqs' => $topClickFaqs,
+            'maxClicks' => $topClickFaqs->max('clicks') ?: 1,
         ]);
     }
 
@@ -35,14 +41,10 @@ class FaqController extends Controller
             'answer' => 'required|string|max:10000',
             'sort_order' => 'nullable|integer',
             'is_active' => 'nullable|boolean',
+            'faq_topic_id' => 'nullable|exists:faq_topics,id',
         ]);
 
-        Faq::create([
-            'question' => $validated['question'],
-            'answer' => $validated['answer'],
-            'sort_order' => $validated['sort_order'] ?? 0,
-            'is_active' => $validated['is_active'] ?? true,
-        ]);
+        Faq::create($validated);
 
         return redirect()->route('admin.faqs.index')->with('success', 'FAQ criada com sucesso!');
     }
@@ -54,6 +56,7 @@ class FaqController extends Controller
             'answer' => 'required|string|max:10000',
             'sort_order' => 'nullable|integer',
             'is_active' => 'nullable|boolean',
+            'faq_topic_id' => 'nullable|exists:faq_topics,id',
         ]);
 
         $faq->update($validated);
