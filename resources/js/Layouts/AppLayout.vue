@@ -2,20 +2,19 @@
     <div class="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         <div class="flex h-screen overflow-hidden">
             <!-- Desktop sidebar -->
-            <aside class="hidden lg:flex w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col">
-                <div class="p-6">
+            <aside class="hidden lg:flex w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col overflow-hidden">
+                <div class="p-4">
                     <ApplicationLogo class="w-full h-auto" />
                 </div>
-                <nav class="flex-1 px-3 space-y-0.5 overflow-y-auto">
+                <nav class="flex-1 px-2.5 space-y-0.5 overflow-y-auto">
                     <template v-for="item in navItems" :key="item.label || item.section">
                         <div v-if="item.section"
-                            class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 select-none">
-                            <span v-html="item.icon" class="inline-block w-4 h-4 mr-1.5 align-text-bottom" />
+                            class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 select-none">
                             {{ item.section }}
                         </div>
                         <div v-else-if="item.accordion" class="space-y-0.5">
                             <button @click="toggleAccordion(item.accordion)"
-                                class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left"
+                                class="flex items-center gap-3 w-full px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-left"
                                 :class="isAccordionActive(item.accordion)
                                     ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'">
@@ -27,9 +26,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 18l6-6-6-6"/>
                                 </svg>
                             </button>
-                            <div v-show="accordions[item.accordion]" class="ml-3 space-y-0.5 border-l border-gray-200 dark:border-gray-700 pl-2">
+                            <div v-show="accordions[item.accordion]" class="ml-3 space-y-0.5">
                                 <Link v-for="child in item.children" :key="child.href" :href="child.href"
-                                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                                     :class="$page.url === child.href
                                         ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'">
@@ -38,7 +37,7 @@
                             </div>
                         </div>
                         <Link v-else :href="item.href"
-                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                            class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                             :class="[
                                 $page.url === item.href
                                     ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
@@ -51,10 +50,11 @@
                         </Link>
                     </template>
                 </nav>
-                <div class="p-3 border-t border-gray-200 dark:border-gray-800">
-                    <div class="text-xs text-gray-500 px-3 py-2">
-                        v0.1.0 MVP
-                    </div>
+                <div class="px-3 py-2 border-t border-gray-200 dark:border-gray-800">
+                    <Link :href="route('versions.index')"
+                        class="block text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white px-3 py-2 transition-colors">
+                        v{{ $page.props.app_version }}
+                    </Link>
                 </div>
             </aside>
 
@@ -63,11 +63,11 @@
 
             <!-- Mobile drawer -->
             <aside :class="[
-                'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transform transition-transform duration-300 ease-in-out lg:hidden',
+                'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transform transition-transform duration-300 ease-in-out lg:hidden overflow-hidden',
                 showMobileMenu ? 'translate-x-0' : '-translate-x-full',
             ]">
                 <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-                    <ApplicationLogo class="h-16 w-auto" />
+                    <ApplicationLogo class="h-12 w-auto" />
                     <button @click="showMobileMenu = false"
                         class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -75,16 +75,15 @@
                         </svg>
                     </button>
                 </div>
-                <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+                <nav class="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
                     <template v-for="item in navItems" :key="item.label || item.section">
                         <div v-if="item.section"
-                            class="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 select-none">
-                            <span v-html="item.icon" class="inline-block w-4 h-4 mr-1.5 align-text-bottom" />
+                            class="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 select-none">
                             {{ item.section }}
                         </div>
                         <div v-else-if="item.accordion" class="space-y-0.5">
                             <button @click="toggleAccordion(item.accordion)"
-                                class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left"
+                                class="flex items-center gap-3 w-full px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-left"
                                 :class="isAccordionActive(item.accordion)
                                     ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'">
@@ -96,9 +95,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 18l6-6-6-6"/>
                                 </svg>
                             </button>
-                            <div v-show="accordions[item.accordion]" class="ml-3 space-y-0.5 border-l border-gray-200 dark:border-gray-700 pl-2">
+                            <div v-show="accordions[item.accordion]" class="ml-3 space-y-0.5">
                                 <Link v-for="child in item.children" :key="child.href" :href="child.href" @click="showMobileMenu = false"
-                                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                                     :class="$page.url === child.href
                                         ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'">
@@ -107,7 +106,7 @@
                             </div>
                         </div>
                         <Link v-else :href="item.href"
-                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                            class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                             :class="[
                                 $page.url === item.href
                                     ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
@@ -120,10 +119,11 @@
                         </Link>
                     </template>
                 </nav>
-                <div class="p-3 border-t border-gray-200 dark:border-gray-800">
-                    <div class="text-xs text-gray-500 px-3 py-2">
-                        v0.1.0 MVP
-                    </div>
+                <div class="px-3 py-2 border-t border-gray-200 dark:border-gray-800">
+                    <Link :href="route('versions.index')"
+                        class="block text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white px-3 py-2 transition-colors">
+                        v{{ $page.props.app_version }}
+                    </Link>
                 </div>
             </aside>
 
@@ -220,15 +220,12 @@ import { useToast } from '@/Composables/useToast'
 const page = usePage()
 const toast = useToast()
 
-defineProps({
-    inProgress: Object,
-})
-
 const categories = computed(() => page.props.categories)
 const projects = computed(() => page.props.projects)
 const modules = computed(() => page.props.modules)
 const faqs = computed(() => page.props.faqs || [])
 const latestPaused = computed(() => page.props.latestPaused)
+const inProgress = computed(() => page.props.inProgress)
 const hasStats = computed(() => page.props.hasStats)
 
 const statsClicked = ref(localStorage.getItem('stats_visited') === 'true')
@@ -322,12 +319,14 @@ const navItems = computed(() => {
         items.push({ label: 'Estatísticas', href: '/stats', stats: true, icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' })
     }
 
-    const projectChildren = [
-        { label: 'Visão Geral', href: '/projects' },
-    ]
-    if (user?.role_id === 2 || user?.role_id === 3) {
+    const projectChildren = []
+
+    if (user?.role_id === 2) {
         projectChildren.push({ label: 'Projetos do Setor', href: '/supervisor/projects' })
+    } else if (user?.role_id === 1) {
+        projectChildren.push({ label: 'Visão Geral', href: '/projects' })
     }
+
     if (user?.role_id === 3) {
         projectChildren.push({ label: 'Gerenciar', href: '/admin/projects' })
     }
@@ -374,6 +373,7 @@ const navItems = computed(() => {
             children: [
                 { label: 'Relatórios', href: '/admin/problem-reports' },
                 { label: 'FAQ', href: '/admin/faqs' },
+                { label: 'Versões', href: '/admin/versions' },
             ],
         })
     }

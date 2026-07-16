@@ -1,5 +1,5 @@
 <template>
-    <AppLayout :in-progress="inProgress">
+    <AppLayout>
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div>
@@ -339,7 +339,6 @@ const modules = page.props.modules
 
 const props = defineProps({
     activities: Object,
-    inProgress: Object,
     filters: Object,
 })
 

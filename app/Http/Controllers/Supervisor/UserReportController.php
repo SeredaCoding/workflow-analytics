@@ -29,10 +29,18 @@ class UserReportController extends Controller
 
         $monthly = $this->reportService->monthlyData($user->id, false, $date);
         $categoryDistribution = $this->reportService->categoryDistribution($user->id, false, $date);
+        $projectDistribution = $this->reportService->projectDistribution($user->id, false, $date);
+        $contextDistribution = $this->reportService->contextDistribution($user->id, false, $date);
         $dailyBreakdown = $this->reportService->dailyBreakdown($user->id, false, $date);
         $topActivities = $this->reportService->topActivities($user->id, false, $date);
 
         $totalMinutes = $monthly['total_minutes'] ?: 1;
+
+        $userInProgress = Activity::where('user_id', $user->id)
+            ->inProgress()
+            ->latest('started_at')
+            ->with(['category', 'project', 'context'])
+            ->first();
 
         $activities = Activity::where('user_id', $user->id)
             ->whereYear('started_at', $date->year)
@@ -63,9 +71,20 @@ class UserReportController extends Controller
             'month' => $date->format('Y-m'),
             'monthly' => $monthly,
             'categoryDistribution' => $categoryDistribution,
+            'projectDistribution' => $projectDistribution,
+            'contextDistribution' => $contextDistribution,
             'dailyBreakdownHtml' => $this->reportService->buildDailyHtml($dailyBreakdown, true),
             'weeklySummaryHtml' => $this->reportService->buildWeeklyHtml($dailyBreakdown, true, $date),
             'topActivitiesHtml' => $this->reportService->buildTopActivitiesHtml($topActivities, $totalMinutes, true),
+            'userInProgress' => $userInProgress ? [
+                'id' => $userInProgress->id,
+                'title' => $userInProgress->title,
+                'type' => $userInProgress->type,
+                'category' => $userInProgress->category?->name,
+                'project' => $userInProgress->project?->name,
+                'context' => $userInProgress->context?->name,
+                'started_at' => $userInProgress->started_at->toIso8601String(),
+            ] : null,
             'activities' => $activities,
         ]);
     }

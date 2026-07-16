@@ -112,8 +112,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                                <input v-model="form.is_active" type="checkbox"
-                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                <Checkbox v-model="form.is_active" />
                                 Ativo
                             </label>
                         </div>
@@ -219,6 +218,7 @@
 import { ref, reactive } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import Checkbox from '@/Components/Checkbox.vue'
 import Modal from '@/Components/Modal.vue'
 import InputLabel from '@/Components/InputLabel.vue'
 import TextInput from '@/Components/TextInput.vue'

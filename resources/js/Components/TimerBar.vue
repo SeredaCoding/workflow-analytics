@@ -23,7 +23,7 @@
                         :class="isInterruption ? 'bg-red-500' : 'bg-green-500'" />
                     <span class="text-sm font-medium truncate max-w-[120px] sm:max-w-[200px]">{{ inProgress.title }}</span>
                     <span v-if="isInterruption" class="text-xs px-1.5 py-0.5 rounded bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300 font-medium shrink-0">Int</span>
-                    <span v-if="inProgress.project" class="text-xs text-gray-500 hidden sm:inline shrink-0">· {{ inProgress.project }}</span>
+                    <span v-if="inProgress.project" class="text-xs text-gray-500 hidden sm:inline shrink-0">· {{ inProgress.project?.name || inProgress.project }}</span>
                     <span class="text-sm font-mono tabular-nums shrink-0"
                         :class="isInterruption ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">{{ elapsed }}</span>
                 </div>
@@ -32,7 +32,7 @@
                     <span class="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
                     <span class="text-sm font-medium text-yellow-700 dark:text-yellow-300 truncate max-w-[120px] sm:max-w-[200px]">{{ latestPaused.title }}</span>
                     <span class="text-xs px-1.5 py-0.5 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-300 font-medium shrink-0">Pausado</span>
-                    <span v-if="latestPaused.project" class="text-xs text-yellow-600 dark:text-yellow-400 hidden sm:inline">· {{ latestPaused.project }}</span>
+                    <span v-if="latestPaused.project" class="text-xs text-yellow-600 dark:text-yellow-400 hidden sm:inline">· {{ latestPaused.project?.name || latestPaused.project }}</span>
                 </div>
             </div>
 

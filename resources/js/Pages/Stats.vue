@@ -1,5 +1,5 @@
 <template>
-    <AppLayout :in-progress="inProgress">
+    <AppLayout>
         <div class="max-w-6xl mx-auto space-y-8">
             <div class="flex items-center justify-between">
                 <div>
@@ -244,7 +244,6 @@ const props = defineProps({
     contextDistribution: Array,
     hasPrev: Boolean,
     hasNext: Boolean,
-    inProgress: Object,
 })
 
 const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']

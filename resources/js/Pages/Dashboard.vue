@@ -1,5 +1,5 @@
 <template>
-    <AppLayout :in-progress="inProgress">
+    <AppLayout>
         <div class="max-w-6xl mx-auto space-y-8">
             <div class="flex items-end justify-between">
                 <div>
@@ -88,15 +88,16 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
 
 const props = defineProps({
     stats: Object,
-    inProgress: Object,
     timeline: Array,
 })
+
+const page = usePage()
 
 const liveElapsed = ref('00:00')
 let timer = null
@@ -124,19 +125,20 @@ const hoursWorked = computed(() => {
 const timestamp = ref(Date.now())
 
 const extendedTimeline = computed(() => {
+    const ip = page.props.inProgress
     const items = [...props.timeline]
-    if (props.inProgress) {
-        const exists = items.some(i => i.id === props.inProgress.id)
+    if (ip) {
+        const exists = items.some(i => i.id === ip.id)
         if (!exists) {
             items.push({
-                id: props.inProgress.id,
-                title: props.inProgress.title,
-                type: props.inProgress.type || 'activity',
-                parent_id: props.inProgress.parent_id,
-                category: props.inProgress.category,
-                category_color: props.inProgress.category_color,
-                project: props.inProgress.project,
-                started_at: props.inProgress.started_at,
+                id: ip.id,
+                title: ip.title,
+                type: ip.type || 'activity',
+                parent_id: ip.parent_id,
+                category: ip.category?.name || ip.category,
+                category_color: ip.category?.color,
+                project: ip.project?.name || ip.project,
+                started_at: ip.started_at,
                 ended_at: null,
                 duration: null,
                 status: 'in_progress',
@@ -222,14 +224,34 @@ function formatItemTime(item) {
     return startStr
 }
 
+function getLunchOverlapSeconds(startDate, endDate) {
+    const lunchStart = page.props.lunch_start
+    const lunchEnd = page.props.lunch_end
+    if (!lunchStart || !lunchEnd) return 0
+
+    const lunchStartToday = new Date(endDate)
+    const [lh, lm] = lunchStart.split(':')
+    lunchStartToday.setHours(parseInt(lh), parseInt(lm), 0, 0)
+
+    const lunchEndToday = new Date(endDate)
+    const [leh, lem] = lunchEnd.split(':')
+    lunchEndToday.setHours(parseInt(leh), parseInt(lem), 0, 0)
+
+    const overlapStart = Math.max(startDate.getTime(), lunchStartToday.getTime())
+    const overlapEnd = Math.min(endDate.getTime(), lunchEndToday.getTime())
+
+    return Math.max(0, Math.floor((overlapEnd - overlapStart) / 1000))
+}
+
 function updateElapsed() {
-    if (!props.inProgress?.started_at) {
+    if (!page.props.inProgress?.started_at) {
         liveElapsed.value = '00:00'
         return
     }
-    const start = new Date(props.inProgress.started_at).getTime()
+    const start = new Date(page.props.inProgress.started_at).getTime()
     const now = Date.now()
-    const diff = Math.floor((now - start) / 1000)
+    const raw = Math.floor((now - start) / 1000)
+    const diff = Math.max(0, raw - getLunchOverlapSeconds(new Date(start), new Date(now)))
     const h = String(Math.floor(diff / 3600)).padStart(2, '0')
     const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0')
     const s = String(diff % 60).padStart(2, '0')

@@ -1,5 +1,5 @@
 <template>
-    <AppLayout :in-progress="inProgress">
+    <AppLayout>
         <div class="max-w-5xl mx-auto space-y-8">
             <div>
                 <h2 class="text-2xl font-bold">Configurações</h2>
@@ -101,7 +101,6 @@ const page = usePage()
 
 const props = defineProps({
     settings: Object,
-    inProgress: Object,
 })
 
 const templateEditable = ref(false)

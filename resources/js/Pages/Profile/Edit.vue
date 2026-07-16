@@ -1,5 +1,5 @@
 <template>
-    <AppLayout :in-progress="inProgress">
+    <AppLayout>
         <div class="max-w-5xl mx-auto space-y-8">
             <div>
                 <h2 class="text-2xl font-bold">Perfil</h2>
@@ -33,9 +33,6 @@ defineProps({
     },
     status: {
         type: String,
-    },
-    inProgress: {
-        type: Object,
     },
 })
 </script>

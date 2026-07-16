@@ -38,12 +38,12 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Início</label>
-                        <input type="time" v-model="form.start_time"
+                        <input v-model="form.started_at" type="datetime-local"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white" />
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Fim</label>
-                        <input type="time" v-model="form.end_time"
+                        <input v-model="form.ended_at" type="datetime-local"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white" />
                     </div>
                 </div>
@@ -83,41 +83,39 @@ const props = defineProps({
 const emit = defineEmits(['close', 'registered'])
 
 const titleInput = ref(null)
-const today = new Date()
 
-function toTimeString(date) {
-    return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0')
+function toDatetimeLocal(date) {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    const h = String(date.getHours()).padStart(2, '0')
+    const min = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${m}-${d}T${h}:${min}`
 }
 
 const end = new Date()
 const start = new Date(end.getTime() - 60 * 60 * 1000)
-
-function toDateString(date) {
-    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0')
-}
 
 const form = reactive({
     title: '',
     category_id: null,
     project_id: null,
     context_id: null,
-    start_time: toTimeString(start),
-    end_time: toTimeString(end),
+    started_at: toDatetimeLocal(start),
+    ended_at: toDatetimeLocal(end),
     description: '',
 })
 
 function submit() {
     if (!form.title.trim() || !form.category_id) return
 
-    const dateStr = toDateString(today)
-
     router.post('/api/activities/manual', {
         title: form.title.trim(),
         category_id: form.category_id,
         project_id: form.project_id || null,
         context_id: form.context_id || null,
-        started_at: `${dateStr} ${form.start_time}:00`,
-        ended_at: `${dateStr} ${form.end_time}:00`,
+        started_at: form.started_at,
+        ended_at: form.ended_at,
         description: form.description.trim() || null,
     }, {
         preserveState: false,
