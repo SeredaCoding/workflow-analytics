@@ -12,10 +12,19 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-2 max-w-sm">
+            <div class="flex items-center gap-2 flex-wrap">
                 <input v-model="search" type="text" placeholder="Buscar projetos..."
                     @input="onSearch"
-                    class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
+                    class="w-full sm:w-64 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
+                <div class="flex items-center gap-1">
+                    <button v-for="opt in visibilityOptions" :key="opt.value" @click="setVisibility(opt.value)"
+                        class="text-xs px-3 py-1.5 rounded-lg border transition-colors"
+                        :class="filterVisibility === opt.value
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'">
+                        {{ opt.label }}
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -112,20 +121,14 @@
                                 </div>
                                 <div class="flex items-end pb-2">
                                     <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                                        <input v-model="form.is_active" type="checkbox"
-                                            class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                        <Checkbox v-model="form.is_active" />
                                         Ativo
                                     </label>
                                 </div>
                                 <div class="md:col-span-2">
-                                    <InputLabel for="m-visibility" value="Visibilidade" />
-                                    <select id="m-visibility" v-model="form.visibility"
-                                        class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 text-sm shadow-sm focus:border-gray-500 focus:ring-gray-500">
-                                        <option value="global">Global — visível para todos</option>
-                                        <option value="sector">Setor específico</option>
-                                        <option value="user">Usuário(s) específico(s)</option>
-                                    </select>
-                                    <InputError :message="form.errors.visibility" />
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                        Atribua setores e usuários nas abas abaixo. A visibilidade do projeto é definida automaticamente com base nas atribuições.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -138,11 +141,11 @@
                                 <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             </div>
                             <div class="max-h-56 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                                <label v-for="sector in filteredSectors" :key="sector.id" @click.prevent="toggleSector(sector.id)"
+                                    <label v-for="sector in filteredSectors" :key="sector.id"
+                                    @click.prevent="toggleSector(sector.id)"
                                     class="flex items-center gap-2 text-sm cursor-pointer py-1"
                                     :class="form.sector_ids.includes(sector.id) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">
-                                    <input type="checkbox" :checked="form.sector_ids.includes(sector.id)"
-                                        class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                    <Checkbox :checked="form.sector_ids.includes(sector.id)" />
                                     {{ sector.name }}
                                 </label>
                                 <div v-if="filteredSectors.length === 0" class="text-sm text-gray-400 text-center py-2">Nenhum setor encontrado.</div>
@@ -159,17 +162,18 @@
                                 <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             </div>
                             <div class="max-h-56 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                                <label v-for="user in filteredUsers" :key="user.id" @click.prevent="toggleUser(user.id)"
+                                <label v-for="user in filteredUsers" :key="user.id"
+                                    @click.prevent="toggleUser(user.id)"
                                     class="flex items-center gap-2 text-sm cursor-pointer py-1"
                                     :class="form.user_ids.includes(user.id) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">
-                                    <input type="checkbox" :checked="form.user_ids.includes(user.id)"
-                                        class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                    <Checkbox :checked="form.user_ids.includes(user.id)" />
                                     <div class="min-w-0">
                                         <div class="truncate">{{ user.name }}</div>
                                         <div v-if="user.email" class="text-xs text-gray-400 truncate">{{ user.email }}</div>
                                     </div>
                                 </label>
-                                <div v-if="filteredUsers.length === 0" class="text-sm text-gray-400 text-center py-2">Nenhum usuário encontrado.</div>
+                                <div v-if="form.sector_ids.length === 0" class="text-sm text-gray-400 text-center py-2">Selecione ao menos um setor primeiro.</div>
+                                <div v-else-if="filteredUsers.length === 0" class="text-sm text-gray-400 text-center py-2">Nenhum usuário encontrado nestes setores.</div>
                             </div>
                             <div v-if="form.user_ids.length" class="text-xs text-gray-400">{{ form.user_ids.length }} selecionado(s)</div>
                             <InputError :message="form.errors.user_ids" />
@@ -204,13 +208,40 @@
                 </div>
             </Modal>
         </div>
+
+        <Modal :show="showSectorConfirm" @close="cancelRemoveSector" max-width="md">
+            <div class="p-6 space-y-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Remover setor</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Os seguintes usuários deste setor serão removidos do projeto e não poderão mais visualizá-lo:
+                </p>
+                <ul class="space-y-1 max-h-40 overflow-y-auto">
+                    <li v-for="user in sectorConfirmUsers" :key="user.id"
+                        class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {{ user.name }}
+                    </li>
+                </ul>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @click="cancelRemoveSector"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                        Cancelar
+                    </button>
+                    <button type="button" @click="confirmRemoveSector"
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-700 rounded-lg hover:bg-red-700">
+                        Remover
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link, router, useForm } from '@inertiajs/vue3'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import Checkbox from '@/Components/Checkbox.vue'
 import Modal from '@/Components/Modal.vue'
 import InputLabel from '@/Components/InputLabel.vue'
 import TextInput from '@/Components/TextInput.vue'
@@ -225,13 +256,42 @@ const props = defineProps({
 })
 
 const search = ref(props.filters?.search || '')
+const filterVisibility = ref(props.filters?.user_type
+    ? `user:${props.filters.user_type}`
+    : (props.filters?.visibility || ''))
+
+const visibilityOptions = [
+    { value: '', label: 'Todos' },
+    { value: 'global', label: 'Global' },
+    { value: 'sector', label: 'Setor' },
+    { value: 'user', label: 'Usuário' },
+    { value: 'user:personal', label: 'Pessoal' },
+    { value: 'user:individual', label: 'Individual' },
+    { value: 'user:shared', label: 'Compartilhado' },
+    { value: 'user:multisector', label: 'Multi-setor' },
+]
 
 let searchTimer = null
 function onSearch() {
     clearTimeout(searchTimer)
-    searchTimer = setTimeout(() => {
-        router.get('/admin/projects', { search: search.value || '' }, { preserveState: true, preserveScroll: true })
-    }, 300)
+    searchTimer = setTimeout(() => applyFilters(), 300)
+}
+
+function setVisibility(value) {
+    filterVisibility.value = value
+    applyFilters()
+}
+
+function applyFilters() {
+    const raw = filterVisibility.value || ''
+    const parts = raw.split(':')
+    const visibility = parts[0] || ''
+    const user_type = parts[1] || ''
+    router.get('/admin/projects', {
+        search: search.value || '',
+        visibility: visibility === 'user' && user_type ? '' : visibility,
+        user_type: user_type || '',
+    }, { preserveState: true, preserveScroll: true })
 }
 
 const showManageModal = ref(false)
@@ -250,23 +310,29 @@ const filteredSectors = computed(() => {
 
 const filteredUsers = computed(() => {
     const q = userSearch.value.toLowerCase()
-    if (!q) return props.users
-    return props.users.filter(u => u.name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q)))
+    const bySector = props.users.filter(u => form.sector_ids.includes(u.sector_id))
+    if (!q) return bySector
+    return bySector.filter(u => u.name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q)))
 })
+
+function randomColor() {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+}
+
+const page = usePage()
 
 const tabs = computed(() => [
     { key: 'info', label: 'Informações' },
-    { key: 'sectors', label: 'Setores', disabled: () => form.visibility !== 'sector' },
-    { key: 'users', label: 'Usuários', disabled: () => form.visibility !== 'user' },
+    { key: 'sectors', label: 'Setores' },
+    { key: 'users', label: 'Usuários' },
     { key: 'delete', label: 'Excluir', disabled: () => isCreating.value },
 ])
 
 const form = useForm({
     name: '',
     description: '',
-    color: '#6366f1',
+    color: randomColor(),
     is_active: true,
-    visibility: 'global',
     sector_ids: [],
     user_ids: [],
 })
@@ -277,9 +343,8 @@ function openCreate() {
     sectorSearch.value = ''
     userSearch.value = ''
     form.reset()
-    form.color = '#6366f1'
+    form.color = randomColor()
     form.is_active = true
-    form.visibility = 'global'
     form.sector_ids = []
     form.user_ids = []
     form.clearErrors()
@@ -293,9 +358,8 @@ function openManage(project) {
     userSearch.value = ''
     form.name = project.name
     form.description = project.description || ''
-    form.color = project.color || '#6366f1'
+    form.color = project.color || randomColor()
     form.is_active = project.is_active
-    form.visibility = project.visibility || 'global'
     form.sector_ids = project.sectors?.map(s => s.id) || []
     form.user_ids = project.users?.map(u => u.id) || []
     form.clearErrors()
@@ -305,30 +369,67 @@ function openManage(project) {
 function closeManage() {
     showManageModal.value = false
     managingProject.value = null
+    sectorConfirmUsers.value = []
+    pendingSectorId.value = null
 }
 
+const showSectorConfirm = ref(false)
+const sectorConfirmUsers = ref([])
+const pendingSectorId = ref(null)
+
 function toggleSector(id) {
-    const idx = form.sector_ids.indexOf(id)
-    if (idx === -1) form.sector_ids.push(id)
-    else form.sector_ids.splice(idx, 1)
+    if (form.sector_ids.includes(id)) {
+        const affected = props.users.filter(u =>
+            u.sector_id === id && form.user_ids.includes(u.id)
+        )
+        if (affected.length > 0) {
+            pendingSectorId.value = id
+            sectorConfirmUsers.value = affected
+            showSectorConfirm.value = true
+            return
+        }
+        form.sector_ids = form.sector_ids.filter(sid => sid !== id)
+    } else {
+        form.sector_ids = [...form.sector_ids, id]
+    }
 }
 
 function toggleUser(id) {
-    const idx = form.user_ids.indexOf(id)
-    if (idx === -1) form.user_ids.push(id)
-    else form.user_ids.splice(idx, 1)
+    if (form.user_ids.includes(id)) {
+        form.user_ids = form.user_ids.filter(uid => uid !== id)
+    } else {
+        form.user_ids = [...form.user_ids, id]
+    }
+}
+
+function confirmRemoveSector() {
+    const id = pendingSectorId.value
+    if (id === null) return
+    const affectedIds = new Set(sectorConfirmUsers.value.map(u => u.id))
+    form.sector_ids = form.sector_ids.filter(sid => sid !== id)
+    form.user_ids = form.user_ids.filter(uid => !affectedIds.has(uid))
+    showSectorConfirm.value = false
+    sectorConfirmUsers.value = []
+    pendingSectorId.value = null
+}
+
+function cancelRemoveSector() {
+    showSectorConfirm.value = false
+    sectorConfirmUsers.value = []
+    pendingSectorId.value = null
 }
 
 function saveProject() {
-    if (isCreating.value) {
-        form.post(route('admin.projects.store'), {
-            onSuccess: () => closeManage(),
-        })
-    } else {
-        form.put(route('admin.projects.update', managingProject.value.id), {
-            onSuccess: () => closeManage(),
-        })
-    }
+    const method = isCreating.value ? 'post' : 'put'
+    const url = isCreating.value
+        ? route('admin.projects.store')
+        : route('admin.projects.update', managingProject.value.id)
+    form[method](url, {
+        onSuccess: () => {
+            closeManage()
+            applyFilters()
+        },
+    })
 }
 
 function deleteProject() {
@@ -337,10 +438,47 @@ function deleteProject() {
     })
 }
 
+function currentUserId() {
+    return page.props.auth.user?.id
+}
+
+function isMultiSectorUser(project) {
+    if (project.visibility !== 'user') return false
+    const sectors = new Set()
+    for (const user of project.users || []) {
+        if (user.sector) sectors.add(user.sector.id)
+    }
+    return sectors.size > 1
+}
+
+function isPersonalMine(project) {
+    return project.visibility === 'user'
+        && project.users?.length === 1
+        && project.users[0]?.id === currentUserId()
+}
+
+function isPersonalOther(project) {
+    return project.visibility === 'user'
+        && project.users?.length === 1
+        && project.users[0]?.id !== currentUserId()
+}
+
 function visibilityClass(project) {
-    if (project.visibility === 'global') return 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400'
-    if (project.visibility === 'sector') return 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400'
-    return 'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400'
+    const base = 'inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium'
+    if (isPersonalMine(project)) {
+        return `${base} bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300`
+    }
+    if (isPersonalOther(project)) {
+        return `${base} bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300`
+    }
+    if (isMultiSectorUser(project)) {
+        return `${base} bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-300`
+    }
+    const map = {
+        global: 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300',
+        sector: 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-300',
+    }
+    return `${base} ${map[project.visibility] || 'bg-gray-100 text-gray-500'}`
 }
 
 function visibilityLabel(project) {
@@ -350,6 +488,9 @@ function visibilityLabel(project) {
         if (names.length === 0) return 'Setor'
         return names.join(', ')
     }
-    return project.users?.length + ' usuário(s)'
+    if (isPersonalMine(project)) return 'Pessoal'
+    if (isPersonalOther(project)) return 'Individual'
+    if (isMultiSectorUser(project)) return 'Multi-setor'
+    return 'Compartilhado'
 }
 </script>

@@ -22,37 +22,27 @@ class ProjectController extends Controller
         return $ids;
     }
 
-    private function visibleProjectsQuery()
-    {
-        $supervisor = auth()->user();
-        $sectorIds = $this->getSectorIds();
-
-        return Project::where('is_active', true)
-            ->where(function ($q) use ($sectorIds, $supervisor) {
-                $q->where('visibility', 'global')
-                  ->orWhere(function ($q) use ($sectorIds) {
-                      $q->where('visibility', 'sector')
-                        ->whereHas('sectors', fn($q) => $q->whereIn('id', $sectorIds));
-                  })
-                  ->orWhere(function ($q) use ($supervisor) {
-                      $q->where('visibility', 'user')
-                        ->whereHas('users', fn($q) => $q->where('id', $supervisor->id));
-                  });
-            });
-    }
-
     public function index(Request $request)
     {
         $supervisor = auth()->user();
+
+        if ($supervisor->isAdmin()) {
+            return redirect()->route('admin.projects.index');
+        }
+
         $sectorIds = $this->getSectorIds();
 
-        $query = $this->visibleProjectsQuery()->with(['sectors', 'users'])->withCount('activities');
+        $query = Project::where('is_active', true)->visibleTo($supervisor)->with(['sectors', 'users'])->withCount('activities');
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%");
             });
+        }
+
+        if ($visibility = $request->input('visibility')) {
+            $query->where('visibility', $visibility);
         }
 
         $projects = $query->orderBy('name')->paginate(15)->withQueryString();
@@ -64,7 +54,7 @@ class ProjectController extends Controller
             'projects' => $projects,
             'sectorUsers' => $sectorUsers,
             'sectors' => $sectors,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'visibility']),
         ]);
     }
 
@@ -96,7 +86,7 @@ class ProjectController extends Controller
         $project = Project::create([
             'name' => $validated['name'],
             'slug' => $slug,
-            'color' => $validated['color'] ?? '#6366f1',
+            'color' => $validated['color'] ?? randomHexColor(),
             'is_active' => $validated['is_active'] ?? true,
             'visibility' => 'sector',
         ]);
@@ -110,7 +100,7 @@ class ProjectController extends Controller
     {
         $allowedSectorIds = $this->getSectorIds();
 
-        if ($project->visibility !== 'sector' || !$project->sectors()->whereIn('sector_id', $allowedSectorIds)->exists()) {
+        if (!$project->sectors()->whereIn('sector_id', $allowedSectorIds)->exists()) {
             abort(403, 'Você não pode editar este projeto.');
         }
 
@@ -138,7 +128,7 @@ class ProjectController extends Controller
         $project->update([
             'name' => $validated['name'],
             'slug' => $slug,
-            'color' => $validated['color'] ?? '#6366f1',
+            'color' => $validated['color'] ?? randomHexColor(),
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
@@ -152,7 +142,7 @@ class ProjectController extends Controller
         if (auth()->user()->role_id !== 3) {
             $allowedSectorIds = $this->getSectorIds();
 
-            if ($project->visibility !== 'sector' || !$project->sectors()->whereIn('sector_id', $allowedSectorIds)->exists()) {
+            if (!$project->sectors()->whereIn('sector_id', $allowedSectorIds)->exists()) {
                 abort(403, 'Você não pode excluir este projeto.');
             }
         }
@@ -169,23 +159,13 @@ class ProjectController extends Controller
         $sectorIds = $this->getSectorIds();
 
         $visible = Project::where('id', $project->id)->where('is_active', true)
-            ->where(function ($q) use ($sectorIds, $supervisor) {
-                $q->where('visibility', 'global')
-                  ->orWhere(function ($q) use ($sectorIds) {
-                      $q->where('visibility', 'sector')
-                        ->whereHas('sectors', fn($q) => $q->whereIn('id', $sectorIds));
-                  })
-                  ->orWhere(function ($q) use ($supervisor) {
-                      $q->where('visibility', 'user')
-                        ->whereHas('users', fn($q) => $q->where('id', $supervisor->id));
-                  });
-            })->exists();
+            ->visibleTo($supervisor)->exists();
 
         if (!$visible) {
             abort(404);
         }
 
-        $project->load(['sectors', 'users']);
+        $project->load(['sectors', 'users', 'links']);
 
         $activitiesQuery = Activity::where('project_id', $project->id)
             ->with(['user', 'category'])
@@ -289,7 +269,7 @@ class ProjectController extends Controller
     {
         $sectorIds = $this->getSectorIds();
 
-        if ($project->visibility !== 'sector' || !$project->sectors()->whereIn('sector_id', $sectorIds)->exists()) {
+        if (!$project->sectors()->whereIn('sector_id', $sectorIds)->exists()) {
             abort(403);
         }
 
@@ -306,7 +286,7 @@ class ProjectController extends Controller
     {
         $sectorIds = $this->getSectorIds();
 
-        if ($project->visibility !== 'sector' || !$project->sectors()->whereIn('sector_id', $sectorIds)->exists()) {
+        if (!$project->sectors()->whereIn('sector_id', $sectorIds)->exists()) {
             abort(403);
         }
 
@@ -328,7 +308,7 @@ class ProjectController extends Controller
     {
         $sectorIds = $this->getSectorIds();
 
-        if ($project->visibility !== 'sector' || !$project->sectors()->whereIn('sector_id', $sectorIds)->exists()) {
+        if (!$project->sectors()->whereIn('sector_id', $sectorIds)->exists()) {
             abort(403);
         }
 

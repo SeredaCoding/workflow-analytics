@@ -83,10 +83,8 @@ class ProjectLinkController extends Controller
     private function canModifyProject($user, Project $project): bool
     {
         if ($user->isAdmin()) return true;
-        if ($project->user_id === $user->id) return true;
         if ($project->users()->where('user_id', $user->id)->exists()) return true;
-        if ($project->visibility === 'global') return true;
-        if ($project->visibility === 'sector' && $project->sectors()->where('id', $user->sector_id)->exists()) return true;
+        if ($user->sector_id && $project->sectors()->where('id', $user->sector_id)->exists()) return true;
         return false;
     }
 }

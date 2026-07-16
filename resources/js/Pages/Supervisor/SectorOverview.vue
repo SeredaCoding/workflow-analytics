@@ -63,10 +63,11 @@
                             <td class="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-medium whitespace-nowrap">{{ user.sup_hours }}h</td>
                             <td class="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap">{{ user.mtg_hours }}h</td>
                             <td class="px-4 py-3 text-center text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ user.interruptions }}</td>
-                            <td class="px-4 py-3 max-w-[160px]">
-                                <span v-if="user.inProgress" class="inline-flex items-center gap-1.5">
+                            <td class="px-4 py-3 max-w-[160px] overflow-hidden">
+                                <span v-if="user.inProgress" @click.stop="viewDetail(user.inProgress)"
+                                    class="flex items-center gap-1.5 min-w-0 cursor-pointer hover:opacity-75 transition-opacity">
                                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0"></span>
-                                    <span class="text-gray-500 dark:text-gray-400 text-xs truncate block">{{ user.inProgress.title }}</span>
+                                    <span class="text-gray-500 dark:text-gray-400 text-xs truncate">{{ user.inProgress.title }}</span>
                                 </span>
                                 <span v-else class="text-gray-400 dark:text-gray-500 text-xs">—</span>
                             </td>
@@ -86,14 +87,17 @@
                 </table>
             </div>
         </div>
+
+        <ActivityDetailModal v-if="viewingActivity" :activity="viewingActivity" @close="viewingActivity = null" />
     </AppLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
+import ActivityDetailModal from '@/Components/ActivityDetailModal.vue'
 
 const props = defineProps({
     sectors: Array,
@@ -125,5 +129,11 @@ function hoursBadgeClass(hours) {
 function changeMonth(e) {
     const month = e.target.value
     router.get(route('supervisor.sector.index'), { month }, { preserveState: true })
+}
+
+const viewingActivity = ref(null)
+
+function viewDetail(activity) {
+    viewingActivity.value = activity
 }
 </script>

@@ -10,27 +10,15 @@ use Illuminate\Validation\ValidationException;
 
 class ProjectController extends Controller
 {
-    private function visibleProjectsQuery()
+    public function index(Request $request)
     {
         $user = auth()->user();
 
-        return Project::where('is_active', true)
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'global')
-                  ->orWhere(function ($q) use ($user) {
-                      $q->where('visibility', 'sector')
-                        ->whereHas('sectors', fn($q) => $q->where('id', $user->sector_id));
-                  })
-                  ->orWhere(function ($q) use ($user) {
-                      $q->where('visibility', 'user')
-                        ->whereHas('users', fn($q) => $q->where('id', $user->id));
-                  });
-            });
-    }
+        if ($user->isSupervisor()) {
+            return redirect()->route('supervisor.projects.index');
+        }
 
-    public function index(Request $request)
-    {
-        $query = $this->visibleProjectsQuery()->withCount('activities');
+        $query = Project::where('is_active', true)->visibleTo($user)->withCount('activities');
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -65,16 +53,21 @@ class ProjectController extends Controller
             'user_id' => auth()->id(),
             'name' => $validated['name'],
             'slug' => $slug,
-            'color' => '#6366f1',
+            'color' => randomHexColor(),
             'is_active' => true,
             'visibility' => 'user',
         ]);
 
         $project->users()->attach(auth()->id());
 
+        if (auth()->user()->sector_id) {
+            $project->sectors()->attach(auth()->user()->sector_id);
+        }
+
         return response()->json([
             'id' => $project->id,
             'name' => $project->name,
+            'sector_id' => auth()->user()->sector_id,
         ]);
     }
 
@@ -83,17 +76,7 @@ class ProjectController extends Controller
         $user = auth()->user();
 
         $visible = Project::where('id', $project->id)->where('is_active', true)
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'global')
-                  ->orWhere(function ($q) use ($user) {
-                      $q->where('visibility', 'sector')
-                        ->whereHas('sectors', fn($q) => $q->where('id', $user->sector_id));
-                  })
-                  ->orWhere(function ($q) use ($user) {
-                      $q->where('visibility', 'user')
-                        ->whereHas('users', fn($q) => $q->where('id', $user->id));
-                  });
-            })->exists();
+            ->visibleTo($user)->exists();
 
         if (!$visible) {
             abort(404);
@@ -204,8 +187,8 @@ class ProjectController extends Controller
         $user = auth()->user();
 
         $canEdit = $user->isAdmin()
-            || $project->users()->where('user_id', $user->id)->exists()
-            || ($project->visibility === 'sector' && $user->sector_id && $project->sectors()->where('id', $user->sector_id)->exists());
+            || ($user->isSupervisor() && $project->sectors()->whereIn('id', $user->supervisedSectors()->pluck('id'))->exists())
+            || $project->users()->where('user_id', $user->id)->exists();
 
         if (!$canEdit) {
             abort(403, 'Você não pode editar este projeto.');
@@ -220,7 +203,7 @@ class ProjectController extends Controller
         $project->update([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
-            'color' => $validated['color'] ?? '#6366f1',
+            'color' => $validated['color'] ?? randomHexColor(),
         ]);
 
         return redirect()->back()->with('success', 'Projeto atualizado com sucesso!');

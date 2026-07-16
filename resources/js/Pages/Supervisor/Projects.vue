@@ -12,60 +12,63 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-2 max-w-sm">
+            <div class="flex items-center gap-2 flex-wrap">
                 <input v-model="search" type="text" placeholder="Buscar projetos..."
                     @input="onSearch"
-                    class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
+                    class="w-full sm:w-64 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400" />
+                <div class="flex items-center gap-1">
+                    <button v-for="opt in visibilityOptions" :key="opt.value" @click="setVisibility(opt.value)"
+                        class="text-xs px-3 py-1.5 rounded-lg border transition-colors"
+                        :class="filterVisibility === opt.value
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'">
+                        {{ opt.label }}
+                    </button>
+                </div>
             </div>
 
-            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-                            <th class="text-left px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Nome</th>
-                            <th class="text-left px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Setores</th>
-                            <th class="text-center px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Atividades</th>
-                            <th class="text-center px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Usuários</th>
-                            <th class="text-right px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr v-for="project in projects.data" :key="project.id"
-                            @click="viewProject(project)"
-                            class="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="inline-block w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: project.color }" />
-                                    <div class="min-w-0">
-                                        <div class="font-medium text-gray-900 dark:text-white truncate">{{ project.name }}</div>
-                                        <div v-if="project.description" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate max-w-[200px]">{{ project.description }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600 dark:text-gray-400 text-xs">
-                                {{ sectorNames(project) }}
-                            </td>
-                            <td class="px-6 py-4 text-center text-gray-600 dark:text-gray-400">
-                                {{ project.activities_count }}
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <button @click.stop="manageUsers(project)"
-                                    class="text-xs text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white underline">
-                                    {{ project.users?.length || 0 }} usuário(s)
-                                </button>
-                            </td>
-                            <td class="px-6 py-4 text-right" @click.stop>
-                                <button @click="openEdit(project)" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mr-3">Editar</button>
-                                <button @click="confirmDelete(project)" class="text-sm text-red-500 hover:text-red-700 dark:hover:text-red-400">Excluir</button>
-                            </td>
-                        </tr>
-                        <tr v-if="projects.data?.length === 0">
-                            <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                                Nenhum projeto encontrado.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div v-for="project in projects.data" :key="project.id"
+                    @click="viewProject(project)"
+                    class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 space-y-3 cursor-pointer hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
+
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                            <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: project.color }" />
+                            <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{{ project.name }}</span>
+                            <span class="text-xs px-1.5 py-0.5 rounded-full shrink-0 font-medium"
+                                :class="visibilityBadgeClass(project.visibility)">
+                                {{ visibilityLabel(project.visibility) }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-0.5 shrink-0" @click.stop>
+                            <button @click="openEdit(project)"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                            </button>
+                            <button @click="confirmDelete(project)"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="project.description" class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ project.description }}</div>
+
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span class="truncate">{{ project.sectors?.map(s => s.name).join(', ') || '—' }}</span>
+                        <span class="ml-auto">{{ project.activities_count }} atividades</span>
+                        <button @click.stop="manageUsers(project)"
+                            class="underline hover:text-gray-700 dark:hover:text-gray-300 shrink-0">
+                            {{ project.users?.length || 0 }} usuário(s)
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="projects.data?.length === 0"
+                    class="col-span-full text-center py-12 text-sm text-gray-500 dark:text-gray-400">
+                    Nenhum projeto encontrado.
+                </div>
             </div>
 
             <div v-if="projects.total > projects.per_page" class="flex justify-center gap-2">
@@ -93,8 +96,7 @@
                                 <label v-for="sector in sectors" :key="sector.id" @click.prevent="toggleSector(createForm, sector.id)"
                                     class="flex items-center gap-2 text-sm cursor-pointer"
                                     :class="createForm.sector_ids.includes(sector.id) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">
-                                    <input type="checkbox" :checked="createForm.sector_ids.includes(sector.id)"
-                                        class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                    <Checkbox :checked="createForm.sector_ids.includes(sector.id)" />
                                     {{ sector.name }}
                                 </label>
                             </div>
@@ -126,8 +128,7 @@
                                 <label v-for="sector in sectors" :key="sector.id" @click.prevent="toggleSector(editForm, sector.id)"
                                     class="flex items-center gap-2 text-sm cursor-pointer"
                                     :class="editForm.sector_ids.includes(sector.id) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">
-                                    <input type="checkbox" :checked="editForm.sector_ids.includes(sector.id)"
-                                        class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                    <Checkbox :checked="editForm.sector_ids.includes(sector.id)" />
                                     {{ sector.name }}
                                 </label>
                             </div>
@@ -171,7 +172,6 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
                         Associe ou remova usuários do setor a este projeto.
                     </p>
-
                     <div class="max-h-60 overflow-y-auto space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                         <div v-for="user in sectorUsers" :key="user.id"
                             class="flex items-center justify-between py-1.5">
@@ -189,7 +189,6 @@
                             Nenhum usuário no setor.
                         </div>
                     </div>
-
                     <div class="flex justify-end pt-4">
                         <button @click="showUsersModal = false"
                             class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
@@ -206,6 +205,7 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import Checkbox from '@/Components/Checkbox.vue'
 import Modal from '@/Components/Modal.vue'
 import InputLabel from '@/Components/InputLabel.vue'
 import TextInput from '@/Components/TextInput.vue'
@@ -219,14 +219,50 @@ const props = defineProps({
     filters: Object,
 })
 
+function randomColor() {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+}
+
 const search = ref(props.filters?.search || '')
+const filterVisibility = ref(props.filters?.visibility || '')
+
+const visibilityOptions = [
+    { value: '', label: 'Todos' },
+    { value: 'global', label: 'Global' },
+    { value: 'sector', label: 'Setor' },
+    { value: 'user', label: 'Pessoal' },
+]
+
+function visibilityBadgeClass(v) {
+    const base = 'inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium'
+    const map = {
+        global: 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300',
+        sector: 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-300',
+        user: 'bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300',
+    }
+    return `${base} ${map[v] || 'bg-gray-100 text-gray-500'}`
+}
+
+function visibilityLabel(v) {
+    return { global: 'Global', sector: 'Setor', user: 'Pessoal' }[v] || v
+}
 
 let searchTimer = null
 function onSearch() {
     clearTimeout(searchTimer)
-    searchTimer = setTimeout(() => {
-        router.get('/supervisor/projects', { search: search.value || '' }, { preserveState: true, preserveScroll: true })
-    }, 300)
+    searchTimer = setTimeout(() => applyFilters(), 300)
+}
+
+function setVisibility(value) {
+    filterVisibility.value = value
+    applyFilters()
+}
+
+function applyFilters() {
+    router.get('/supervisor/projects', {
+        search: search.value || '',
+        visibility: filterVisibility.value || '',
+    }, { preserveState: true, preserveScroll: true })
 }
 
 function viewProject(project) {
@@ -244,35 +280,28 @@ const managingProject = ref(null)
 const createForm = useForm({
     name: '',
     sector_ids: [],
-    color: '#6366f1',
+    color: randomColor(),
     is_active: true,
 })
 
 const editForm = useForm({
     name: '',
     sector_ids: [],
-    color: '#6366f1',
+    color: randomColor(),
     is_active: true,
 })
 
-function sectorNames(project) {
-    return project.sectors?.map(s => s.name).join(', ') || '—'
-}
-
 function toggleSector(form, id) {
-    const idx = form.sector_ids.indexOf(id)
-    if (idx === -1) {
-        form.sector_ids.push(id)
-    } else {
-        form.sector_ids.splice(idx, 1)
-    }
+    form.sector_ids = form.sector_ids.includes(id)
+        ? form.sector_ids.filter(sid => sid !== id)
+        : [...form.sector_ids, id]
 }
 
 function openEdit(project) {
     editingProject.value = project
     editForm.name = project.name
     editForm.sector_ids = project.sectors?.map(s => s.id) || []
-    editForm.color = project.color || '#6366f1'
+    editForm.color = project.color || randomColor()
     editForm.is_active = project.is_active
     editForm.clearErrors()
     showEditModal.value = true

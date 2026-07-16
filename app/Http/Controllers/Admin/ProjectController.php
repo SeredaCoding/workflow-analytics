@@ -14,13 +14,35 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Project::select('projects.*')->with(['sectors', 'users'])->withCount('activities')->distinct();
+        $query = Project::select('projects.*')->with(['sectors', 'users.sector'])->withCount('activities')->distinct();
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%");
             });
+        }
+
+        if ($visibility = $request->input('visibility')) {
+            $query->where('visibility', $visibility);
+        }
+
+        if ($userType = $request->input('user_type')) {
+            $query->where('visibility', 'user');
+            $userId = $request->user()->id;
+
+            if ($userType === 'personal') {
+                $query->whereHas('users', fn($q) => $q->where('user_id', $userId))
+                    ->whereRaw('(SELECT COUNT(*) FROM project_user WHERE project_user.project_id = projects.id) = 1');
+            } elseif ($userType === 'individual') {
+                $query->whereDoesntHave('users', fn($q) => $q->where('user_id', $userId))
+                    ->whereRaw('(SELECT COUNT(*) FROM project_user WHERE project_user.project_id = projects.id) = 1');
+            } elseif ($userType === 'shared') {
+                $query->whereRaw('(SELECT COUNT(*) FROM project_user WHERE project_user.project_id = projects.id) > 1');
+            } elseif ($userType === 'multisector') {
+                $query->whereRaw('(SELECT COUNT(*) FROM project_user WHERE project_user.project_id = projects.id) > 1')
+                    ->whereRaw('(SELECT COUNT(DISTINCT u.sector_id) FROM project_user pu INNER JOIN users u ON u.id = pu.user_id WHERE pu.project_id = projects.id) > 1');
+            }
         }
 
         $projects = $query->orderBy('projects.name')
@@ -31,7 +53,7 @@ class ProjectController extends Controller
             'projects' => $projects,
             'sectors' => Sector::orderBy('name')->get(),
             'users' => User::orderBy('name')->get(),
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'visibility', 'user_type']),
         ]);
     }
 
@@ -42,8 +64,7 @@ class ProjectController extends Controller
             'description' => 'nullable|string|max:10000',
             'color' => 'nullable|string|max:7',
             'is_active' => 'nullable|boolean',
-            'visibility' => 'required|string|in:global,sector,user',
-            'sector_ids' => 'nullable|array',
+            'sector_ids' => 'required|array|min:1',
             'sector_ids.*' => 'exists:sectors,id',
             'user_ids' => 'nullable|array',
             'user_ids.*' => 'exists:users,id',
@@ -57,20 +78,20 @@ class ProjectController extends Controller
             $counter++;
         }
 
+        $visibility = !empty($validated['user_ids']) ? 'user' : 'sector';
+
         $project = Project::create([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'slug' => $slug,
-            'color' => $validated['color'] ?? '#6366f1',
+            'color' => $validated['color'] ?? randomHexColor(),
             'is_active' => $validated['is_active'] ?? true,
-            'visibility' => $validated['visibility'],
+            'visibility' => $visibility,
         ]);
 
-        if ($validated['visibility'] === 'sector' && !empty($validated['sector_ids'])) {
-            $project->sectors()->sync($validated['sector_ids']);
-        }
+        $project->sectors()->sync($validated['sector_ids']);
 
-        if ($validated['visibility'] === 'user' && !empty($validated['user_ids'])) {
+        if (!empty($validated['user_ids'])) {
             $project->users()->sync($validated['user_ids']);
         }
 
@@ -84,8 +105,7 @@ class ProjectController extends Controller
             'description' => 'nullable|string|max:10000',
             'color' => 'nullable|string|max:7',
             'is_active' => 'nullable|boolean',
-            'visibility' => 'required|string|in:global,sector,user',
-            'sector_ids' => 'nullable|array',
+            'sector_ids' => 'required|array|min:1',
             'sector_ids.*' => 'exists:sectors,id',
             'user_ids' => 'nullable|array',
             'user_ids.*' => 'exists:users,id',
@@ -99,25 +119,19 @@ class ProjectController extends Controller
             $counter++;
         }
 
+        $visibility = !empty($validated['user_ids']) ? 'user' : 'sector';
+
         $project->update([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'slug' => $slug,
-            'color' => $validated['color'] ?? '#6366f1',
+            'color' => $validated['color'] ?? randomHexColor(),
             'is_active' => $validated['is_active'] ?? true,
-            'visibility' => $validated['visibility'],
+            'visibility' => $visibility,
         ]);
 
-        if ($validated['visibility'] === 'sector') {
-            $project->sectors()->sync($validated['sector_ids'] ?? []);
-            $project->users()->sync([]);
-        } elseif ($validated['visibility'] === 'user') {
-            $project->sectors()->sync([]);
-            $project->users()->sync($validated['user_ids'] ?? []);
-        } else {
-            $project->sectors()->sync([]);
-            $project->users()->sync([]);
-        }
+        $project->sectors()->sync($validated['sector_ids']);
+        $project->users()->sync($validated['user_ids'] ?? []);
 
         return redirect()->route('admin.projects.index')->with('success', 'Projeto atualizado com sucesso!');
     }

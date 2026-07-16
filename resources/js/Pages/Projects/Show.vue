@@ -233,6 +233,10 @@ const props = defineProps({
     monthlyHistory: Array,
 })
 
+function randomColor() {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+}
+
 const newLinkUrl = ref('')
 const addingLink = ref(false)
 const localLinks = ref([...(props.project?.links || [])])
@@ -242,13 +246,13 @@ const confirmDeleteLink = ref(null)
 const editForm = useForm({
     name: props.project?.name || '',
     description: props.project?.description || '',
-    color: props.project?.color || '#6366f1',
+    color: props.project?.color || randomColor(),
 })
 
 function openEdit() {
     editForm.name = props.project.name
     editForm.description = props.project.description || ''
-    editForm.color = props.project.color || '#6366f1'
+    editForm.color = props.project.color || randomColor()
     editForm.clearErrors()
     showEditModal.value = true
 }

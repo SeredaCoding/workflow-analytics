@@ -99,11 +99,10 @@
                         <div v-if="form.visibility === 'sector'" class="space-y-2">
                             <InputLabel value="Setores" />
                             <div class="max-h-40 overflow-y-auto space-y-1.5 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                                <label v-for="sector in sectors" :key="sector.id"
+                                <label v-for="sector in sectors" :key="sector.id" @click.prevent="toggleSector(sector.id)"
                                     class="flex items-center gap-2 text-sm cursor-pointer"
                                     :class="form.sector_ids.includes(sector.id) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">
-                                    <input type="checkbox" :value="sector.id" v-model="form.sector_ids"
-                                        class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                    <Checkbox :checked="form.sector_ids.includes(sector.id)" />
                                     {{ sector.name }}
                                 </label>
                                 <div v-if="!sectors.length" class="text-sm text-gray-400">Nenhum setor cadastrado.</div>
@@ -114,11 +113,10 @@
                         <div v-if="form.visibility === 'user'" class="space-y-2">
                             <InputLabel value="Usuários" />
                             <div class="max-h-40 overflow-y-auto space-y-1.5 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                                <label v-for="user in users" :key="user.id"
+                                <label v-for="user in users" :key="user.id" @click.prevent="toggleUser(user.id)"
                                     class="flex items-center gap-2 text-sm cursor-pointer"
                                     :class="form.user_ids.includes(user.id) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">
-                                    <input type="checkbox" :value="user.id" v-model="form.user_ids"
-                                        class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                    <Checkbox :checked="form.user_ids.includes(user.id)" />
                                     {{ user.name }}
                                 </label>
                                 <div v-if="!users.length" class="text-sm text-gray-400">Nenhum usuário cadastrado.</div>
@@ -128,8 +126,7 @@
 
                         <div class="flex items-center gap-3">
                             <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                                <input v-model="form.is_active" type="checkbox"
-                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-700" />
+                                <Checkbox v-model="form.is_active" />
                                 Ativo
                             </label>
                         </div>
@@ -173,6 +170,7 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import Checkbox from '@/Components/Checkbox.vue'
 import Modal from '@/Components/Modal.vue'
 import InputLabel from '@/Components/InputLabel.vue'
 import TextInput from '@/Components/TextInput.vue'
@@ -226,6 +224,18 @@ function openEditModal(category) {
 function closeModal() {
     showModal.value = false
     editingCategory.value = null
+}
+
+function toggleSector(id) {
+    form.sector_ids = form.sector_ids.includes(id)
+        ? form.sector_ids.filter(sid => sid !== id)
+        : [...form.sector_ids, id]
+}
+
+function toggleUser(id) {
+    form.user_ids = form.user_ids.includes(id)
+        ? form.user_ids.filter(uid => uid !== id)
+        : [...form.user_ids, id]
 }
 
 function saveCategory() {
