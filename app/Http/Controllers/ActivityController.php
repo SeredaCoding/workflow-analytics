@@ -80,17 +80,6 @@ class ActivityController extends Controller
         return Inertia::render('Activities', [
             'activities' => $activities,
             'filters' => $request->only(['search', 'category_id', 'category_ids', 'project_id', 'project_ids', 'context_id', 'context_ids', 'status', 'date_from', 'date_to', 'description', 'priority', 'energy_level', 'per_page']),
-            'inProgress' => $inProgress ? [
-                'id' => $inProgress->id,
-                'title' => $inProgress->title,
-                'type' => $inProgress->type,
-                'parent_id' => $inProgress->parent_id,
-                'category' => $inProgress->category?->name,
-                'category_color' => $inProgress->category?->color,
-                'project' => $inProgress->project?->name,
-                'context' => $inProgress->context?->name,
-                'started_at' => $inProgress->started_at->toIso8601String(),
-            ] : null,
         ]);
     }
 
@@ -234,17 +223,23 @@ class ActivityController extends Controller
 
     public function detail(Activity $activity)
     {
-        if ($activity->user_id !== auth()->id()) {
-            abort(403);
+        $user = auth()->user();
+        $isOwner = $activity->user_id === $user->id;
+
+        if (!$isOwner && !$user->isAdmin()) {
+            $supervisedSectorIds = $user->supervisedSectors()->pluck('id');
+            $activityUser = \App\Models\User::find($activity->user_id);
+            if (!$activityUser || !$supervisedSectorIds->contains($activityUser->sector_id)) {
+                abort(403);
+            }
         }
 
         $root = $activity->parent ?? $activity;
 
-        $sessions = $this->userActivities()
-            ->where(function ($q) use ($root, $activity) {
-                $q->where('id', $root->id)
-                  ->orWhere('parent_id', $root->id);
-            })
+        $sessions = Activity::where(function ($q) use ($root) {
+            $q->where('id', $root->id)
+              ->orWhere('parent_id', $root->id);
+        })
             ->with(['category', 'project', 'context', 'pauses'])
             ->orderBy('started_at')
             ->get();

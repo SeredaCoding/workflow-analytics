@@ -46,20 +46,9 @@ class HandleInertiaRequests extends Middleware
                 : Category::where('is_active', true)->where('visibility', 'global')->orderBy('sort_order')->get(),
             'projects' => $request->user()
                 ? Project::where('is_active', true)
-                    ->where(function ($q) use ($request) {
-                        $user = $request->user();
-                        $q->where('visibility', 'global')
-                          ->orWhere(function ($q) use ($user) {
-                              $q->where('visibility', 'sector')
-                                ->whereHas('sectors', fn($q) => $q->where('id', $user->sector_id));
-                          })
-                          ->orWhere(function ($q) use ($user) {
-                              $q->where('visibility', 'user')
-                                ->whereHas('users', fn($q) => $q->where('id', $user->id));
-                          });
-                    })
+                    ->visibleTo($request->user())
                     ->orderBy('name')->get()
-                : Project::where('is_active', true)->where('visibility', 'global')->orderBy('name')->get(),
+                : Project::where('is_active', true)->orderBy('name')->get(),
             'lunch_start' => $request->user()
                 ? Setting::where('user_id', $request->user()->id)->where('key', 'lunch_start')->value('value')
                 : null,
@@ -71,6 +60,13 @@ class HandleInertiaRequests extends Middleware
                     ->where('status', 'paused')
                     ->where('type', 'activity')
                     ->latest('updated_at')
+                    ->first()
+                : null,
+            'inProgress' => $request->user()
+                ? Activity::where('user_id', $request->user()->id)
+                    ->inProgress()
+                    ->latest('started_at')
+                    ->with(['category', 'project', 'context'])
                     ->first()
                 : null,
             'hasStats' => $request->user()

@@ -48,17 +48,6 @@ class StatsController extends Controller
             'contextDistribution' => $contextDistribution,
             'hasPrev' => $hasPrev,
             'hasNext' => $hasNext,
-            'inProgress' => $inProgress ? [
-                'id' => $inProgress->id,
-                'title' => $inProgress->title,
-                'type' => $inProgress->type,
-                'parent_id' => $inProgress->parent_id,
-                'category' => $inProgress->category?->name,
-                'category_color' => $inProgress->category?->color,
-                'project' => $inProgress->project?->name,
-                'context' => $inProgress->context?->name,
-                'started_at' => $inProgress->started_at->toIso8601String(),
-            ] : null,
         ]);
     }
 

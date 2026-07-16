@@ -24,16 +24,6 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
-            'inProgress' => $inProgress ? [
-                'id' => $inProgress->id,
-                'title' => $inProgress->title,
-                'type' => $inProgress->type,
-                'parent_id' => $inProgress->parent_id,
-                'category' => $inProgress->category?->name,
-                'category_color' => $inProgress->category?->color,
-                'project' => $inProgress->project?->name,
-                'started_at' => $inProgress->started_at->toIso8601String(),
-            ] : null,
         ]);
     }
 

@@ -230,12 +230,14 @@ class ReportService
     {
         $dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-        $border = $darkMode ? '#374151' : '#e5e7eb';
-        $borderBottom = $darkMode ? '#374151' : '#f3f4f6';
-        $textDark = $darkMode ? '#f3f4f6' : '#111';
-        $textBody = $darkMode ? '#d1d5db' : '#333';
-        $textSecondary = $darkMode ? '#9ca3af' : '#666';
-        $textMuted = $darkMode ? '#4b5563' : '#ccc';
+        $border = $darkMode ? 'var(--report-border)' : '#e5e7eb';
+        $borderBottom = $darkMode ? 'var(--report-border-bottom)' : '#f3f4f6';
+        $textDark = $darkMode ? 'var(--report-text-dark)' : '#111';
+        $textBody = $darkMode ? 'var(--report-text-body)' : '#333';
+        $textSecondary = $darkMode ? 'var(--report-text-secondary)' : '#666';
+        $textMuted = $darkMode ? 'var(--report-text-muted)' : '#9ca3af';
+        $bgEven = $darkMode ? 'var(--report-bg-even)' : '#f9fafb';
+        $bgOdd = $darkMode ? 'var(--report-bg-odd)' : '#ffffff';
 
         $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse">';
 
@@ -247,7 +249,7 @@ class ReportService
         $html .= '</tr>';
 
         foreach ($data['weeks'] as $wi => $week) {
-            $bg = $darkMode ? ($wi % 2 === 0 ? '#1f2937' : '#111827') : ($wi % 2 === 0 ? '#f9fafb' : '#ffffff');
+            $bg = $wi % 2 === 0 ? $bgEven : $bgOdd;
             $html .= '<tr>';
             foreach ($week['days'] as $day) {
                 if ($day['is_current_month']) {
@@ -277,11 +279,13 @@ class ReportService
         $weekNumber = 1;
         $totalInterruptions = 0;
 
-        $border = $darkMode ? '#374151' : '#e5e7eb';
-        $borderBottom = $darkMode ? '#374151' : '#f3f4f6';
-        $textDark = $darkMode ? '#f3f4f6' : '#111';
-        $textBody = $darkMode ? '#d1d5db' : '#333';
-        $textSecondary = $darkMode ? '#9ca3af' : '#666';
+        $border = $darkMode ? 'var(--report-border)' : '#e5e7eb';
+        $borderBottom = $darkMode ? 'var(--report-border-bottom)' : '#f3f4f6';
+        $textDark = $darkMode ? 'var(--report-text-dark)' : '#111';
+        $textBody = $darkMode ? 'var(--report-text-body)' : '#333';
+        $textSecondary = $darkMode ? 'var(--report-text-secondary)' : '#666';
+        $bgEven = $darkMode ? 'var(--report-bg-even)' : '#f9fafb';
+        $bgOdd = $darkMode ? 'var(--report-bg-odd)' : '#ffffff';
 
         $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse">';
         $html .= '<tr>';
@@ -302,7 +306,7 @@ class ReportService
             $weekInterruptions = array_sum(array_column($daysInMonth, 'interruptions'));
             $totalInterruptions += $weekInterruptions;
 
-            $bg = $darkMode ? ($wi % 2 === 0 ? '#1f2937' : '#111827') : ($wi % 2 === 0 ? '#f9fafb' : '#ffffff');
+            $bg = $wi % 2 === 0 ? $bgEven : $bgOdd;
             $weekHours = round($week['total_minutes'] / 60, 1);
 
             $html .= '<tr>';
@@ -328,15 +332,17 @@ class ReportService
     public function buildTopActivitiesHtml(array $activities, int $totalMinutes, bool $darkMode = false): string
     {
         if (empty($activities)) {
-            $muted = $darkMode ? '#6b7280' : '#999';
+            $muted = $darkMode ? 'var(--report-text-muted)' : '#6b7280';
             return '<p style="font-size:13px;color:' . $muted . '">Nenhuma atividade registrada no período.</p>';
         }
 
-        $border = $darkMode ? '#374151' : '#e5e7eb';
-        $borderBottom = $darkMode ? '#374151' : '#f3f4f6';
-        $textDark = $darkMode ? '#f3f4f6' : '#111';
-        $textBody = $darkMode ? '#d1d5db' : '#333';
-        $textSecondary = $darkMode ? '#9ca3af' : '#666';
+        $border = $darkMode ? 'var(--report-border)' : '#e5e7eb';
+        $borderBottom = $darkMode ? 'var(--report-border-bottom)' : '#f3f4f6';
+        $textDark = $darkMode ? 'var(--report-text-dark)' : '#111';
+        $textBody = $darkMode ? 'var(--report-text-body)' : '#333';
+        $textSecondary = $darkMode ? 'var(--report-text-secondary)' : '#666';
+        $bgEven = $darkMode ? 'var(--report-bg-even)' : '#f9fafb';
+        $bgOdd = $darkMode ? 'var(--report-bg-odd)' : '#ffffff';
 
         $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px">';
         $html .= '<tr>';
@@ -347,7 +353,7 @@ class ReportService
         $html .= '<th style="padding:6px 8px;text-align:right;border-bottom:2px solid ' . $border . ';color:' . $textDark . ';font-size:12px">%</th>';
         $html .= '</tr>';
         foreach ($activities as $i => $a) {
-            $bg = $darkMode ? ($i % 2 === 0 ? '#1f2937' : '#111827') : ($i % 2 === 0 ? '#f9fafb' : '#ffffff');
+            $bg = $i % 2 === 0 ? $bgEven : $bgOdd;
             $pct = round(($a['duration_minutes'] / $totalMinutes) * 100);
             $hours = round($a['duration_minutes'] / 60, 1);
             $category = $a['category']['name'] ?? '-';

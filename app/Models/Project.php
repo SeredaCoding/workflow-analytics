@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -43,5 +44,22 @@ class Project extends Model
     public function links(): HasMany
     {
         return $this->hasMany(ProjectLink::class)->orderBy('sort_order');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin() || $user->isDev()) {
+            return $query;
+        }
+
+        $query->where(function (Builder $q) use ($user) {
+            if ($user->isSupervisor()) {
+                $sectorIds = $user->supervisedSectors()->pluck('id');
+                $q->whereHas('sectors', fn(Builder $q) => $q->whereIn('id', $sectorIds));
+            }
+            $q->orWhereHas('users', fn(Builder $q) => $q->where('id', $user->id));
+        });
+
+        return $query;
     }
 }
