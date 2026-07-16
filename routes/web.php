@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ProblemReportController as AdminProblemReportCont
 use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
 use App\Http\Controllers\Admin\SectorController as AdminSectorController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\VersionController as AdminVersionController;
 use App\Http\Controllers\Api\FaqClickController;
 use App\Http\Controllers\Api\FaqController as ApiFaqController;
 use App\Http\Controllers\Api\ModuleController as ApiModuleController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StatsController;
+use App\Http\Controllers\VersionController;
 use App\Http\Controllers\Supervisor\ProjectController as SupervisorProjectController;
 use App\Http\Controllers\Supervisor\SectorController as SupervisorSectorController;
 use App\Http\Controllers\Supervisor\UserReportController as SupervisorUserReportController;
@@ -100,6 +102,10 @@ use Illuminate\Support\Facades\Route;
             Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
             Route::get('/problem-reports', [AdminProblemReportController::class, 'index'])->name('problem-reports.index');
             Route::put('/problem-reports/{report}', [AdminProblemReportController::class, 'update'])->name('problem-reports.update');
+            Route::get('/versions', [AdminVersionController::class, 'index'])->name('versions.index');
+            Route::post('/versions', [AdminVersionController::class, 'store'])->name('versions.store');
+            Route::put('/versions/{version}', [AdminVersionController::class, 'update'])->name('versions.update');
+            Route::delete('/versions/{version}', [AdminVersionController::class, 'destroy'])->name('versions.destroy');
         });
 
         Route::middleware('supervisor')->prefix('supervisor')->name('supervisor.')->group(function () {
@@ -116,6 +122,8 @@ use Illuminate\Support\Facades\Route;
 
         Route::get('/admin/problem-reports/{report}/images/{index}', [AdminProblemReportController::class, 'showImage'])
             ->name('admin.problem-reports.images');
+
+        Route::get('/versions', [VersionController::class, 'index'])->name('versions.index');
     });
 
 require __DIR__.'/auth.php';
