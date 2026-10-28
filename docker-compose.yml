@@ -1,23 +1,24 @@
 services:
   app:
-    image: php:8.4-fpm
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
     container_name: workflow-analytics-app
     working_dir: /var/www
     volumes:
       - .:/var/www
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/app.ini
     environment:
-      - APP_ENV=local
-      - DB_CONNECTION=sqlite
-      - DB_DATABASE=/var/www/database/database.sqlite
-    depends_on:
-      - node
+      - APP_ENV=${APP_ENV:-production}
+    depends_on: []
     networks:
       - workflow-network
+      - cloudflare_net
 
   nginx:
     image: nginx:alpine
     container_name: workflow-analytics-nginx
+    restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:80"
     volumes:
@@ -27,19 +28,59 @@ services:
       - app
     networks:
       - workflow-network
+      - cloudflare_net
 
   node:
     image: node:22-alpine
     container_name: workflow-analytics-node
     working_dir: /var/www
-    command: sh -c "npm install && npm install @rolldown/binding-linux-x64-musl lightningcss-linux-x64-musl && chmod +x node_modules/.bin/* && npm run dev"
-    ports:
-      - "${VITE_PORT:-5173}:5173"
+    command: sh -c "npm install && npm install @rolldown/binding-linux-x64-musl lightningcss-linux-x64-musl && chmod +x node_modules/.bin/* && npm run build && tail -f /dev/null"
     volumes:
       - .:/var/www
     networks:
       - workflow-network
+      - cloudflare_net
+
+  db:
+    image: postgres:17-alpine
+    container_name: workflow-analytics-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-workflow_analytics}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "127.0.0.1:${DB_PORT_LOCAL:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - workflow-network
+      - cloudflare_net
+
+  worker:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: workflow-analytics-worker
+    working_dir: /var/www
+    command: php artisan queue:work --tries=3
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/app.ini
+    depends_on:
+      - db
+      - app
+    networks:
+      - workflow-network
+      - cloudflare_net
+
+volumes:
+  postgres_data:
 
 networks:
   workflow-network:
     driver: bridge
+  cloudflare_net:
+    external: true
+    
