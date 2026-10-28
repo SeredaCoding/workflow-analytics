@@ -1,6 +1,6 @@
 <template>
-    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/50" @click.self="$emit('close')">
-        <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/20 backdrop-blur-sm" @click.self="$emit('close')">
+        <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800">
             <div class="p-4 border-b border-gray-100 dark:border-gray-800">
                 <input ref="titleInput" v-model="form.title"
                     placeholder="O que você fez?"
@@ -24,26 +24,26 @@
 
                 <div>
                     <label class="block text-xs text-gray-500 mb-2">Projeto <span class="text-gray-400">(opcional)</span></label>
-                    <div class="flex flex-wrap gap-2">
-                        <button v-for="proj in projects" :key="proj.id" @click="form.project_id = form.project_id === proj.id ? null : proj.id"
-                            class="px-3 py-1 text-xs rounded-full border transition-colors"
-                            :class="form.project_id === proj.id
-                                ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'">
-                            {{ proj.name }}
-                        </button>
-                    </div>
+                    <select v-model="form.project_id"
+                        class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white">
+                        <option :value="null">—</option>
+                        <option v-for="proj in projects" :key="proj.id" :value="proj.id">{{ proj.name }}</option>
+                    </select>
+                </div>
+                <div>
+                    <ModulePicker :modules="modules" :model-value="form.context_id"
+                        @update:model-value="form.context_id = $event" />
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Início</label>
-                        <input type="time" v-model="form.start_time"
+                        <input v-model="form.started_at" type="datetime-local"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white" />
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Fim</label>
-                        <input type="time" v-model="form.end_time"
+                        <input v-model="form.ended_at" type="datetime-local"
                             class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white" />
                     </div>
                 </div>
@@ -51,7 +51,7 @@
                 <div>
                     <label class="block text-xs text-gray-500 mb-1">Descrição <span class="text-gray-400">(opcional)</span></label>
                     <textarea v-model="form.description" rows="2" placeholder="Adicione uma descrição..."
-                        class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white resize-none placeholder-gray-400"></textarea>
+                        class="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400"></textarea>
                 </div>
             </div>
 
@@ -72,48 +72,50 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
+import ModulePicker from '@/Components/ModulePicker.vue'
 
 const props = defineProps({
     categories: Array,
     projects: Array,
+    modules: Array,
 })
 
 const emit = defineEmits(['close', 'registered'])
 
 const titleInput = ref(null)
-const today = new Date()
 
-function toTimeString(date) {
-    return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0')
+function toDatetimeLocal(date) {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    const h = String(date.getHours()).padStart(2, '0')
+    const min = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${m}-${d}T${h}:${min}`
 }
 
 const end = new Date()
 const start = new Date(end.getTime() - 60 * 60 * 1000)
 
-function toDateString(date) {
-    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0')
-}
-
 const form = reactive({
     title: '',
     category_id: null,
     project_id: null,
-    start_time: toTimeString(start),
-    end_time: toTimeString(end),
+    context_id: null,
+    started_at: toDatetimeLocal(start),
+    ended_at: toDatetimeLocal(end),
     description: '',
 })
 
 function submit() {
     if (!form.title.trim() || !form.category_id) return
 
-    const dateStr = toDateString(today)
-
     router.post('/api/activities/manual', {
         title: form.title.trim(),
         category_id: form.category_id,
         project_id: form.project_id || null,
-        started_at: `${dateStr} ${form.start_time}:00`,
-        ended_at: `${dateStr} ${form.end_time}:00`,
+        context_id: form.context_id || null,
+        started_at: form.started_at,
+        ended_at: form.ended_at,
         description: form.description.trim() || null,
     }, {
         preserveState: false,
