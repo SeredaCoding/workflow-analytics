@@ -1,5 +1,5 @@
 <template>
-    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50" @click.self="$emit('close')">
+    <div class="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/20 backdrop-blur-sm" @click.self="$emit('close')">
         <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div class="relative">
                 <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
