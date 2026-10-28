@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Activity;
+use App\Services\LunchBreakService;
 use Carbon\Carbon;
 
 class ReportService
@@ -21,10 +22,11 @@ class ReportService
         ];
     }
 
-    public function monthlyData(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function monthlyData(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
-        $activities = Activity::where('started_at', '>=', $bounds['start'])
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
             ->where('started_at', '<=', $bounds['end'])
             ->get();
 
@@ -43,10 +45,11 @@ class ReportService
         ];
     }
 
-    public function categoryDistribution(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function categoryDistribution(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
-        $activities = Activity::where('started_at', '>=', $bounds['start'])
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
             ->where('started_at', '<=', $bounds['end'])
             ->with('category')
             ->get();
@@ -56,10 +59,13 @@ class ReportService
         }
 
         return $activities
-            ->groupBy('category.name')
-            ->map(function ($items, $category) {
+            ->groupBy(fn($a) => $a->category_id ?? 'none')
+            ->map(function ($items) {
+                $first = $items->first();
+                $cat = $first->category;
                 return [
-                    'name' => $category ?: 'Sem categoria',
+                    'name' => $cat?->name ?? 'Sem categoria',
+                    'color' => $cat?->color ?? '#6366f1',
                     'minutes' => $items->sum('duration_minutes'),
                     'count' => $items->count(),
                 ];
@@ -68,7 +74,67 @@ class ReportService
             ->toArray();
     }
 
-    public function dailyBreakdown(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function projectDistribution(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
+    {
+        $bounds = $this->monthBounds($date);
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
+            ->where('started_at', '<=', $bounds['end'])
+            ->where('type', 'activity')
+            ->with('project')
+            ->get();
+
+        if ($includeInProgress) {
+            $activities = $this->fillInProgressDuration($activities, true);
+        }
+
+        return $activities
+            ->groupBy(fn($a) => $a->project_id ?? 'none')
+            ->map(function ($items) {
+                $first = $items->first();
+                $project = $first->project;
+                return [
+                    'name' => $project?->name ?? 'Sem projeto',
+                    'color' => $project?->color ?? '#6366f1',
+                    'minutes' => $items->sum('duration_minutes'),
+                    'count' => $items->count(),
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    public function contextDistribution(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
+    {
+        $bounds = $this->monthBounds($date);
+        $activities = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
+            ->where('started_at', '<=', $bounds['end'])
+            ->where('type', 'activity')
+            ->with('context')
+            ->get();
+
+        if ($includeInProgress) {
+            $activities = $this->fillInProgressDuration($activities, true);
+        }
+
+        return $activities
+            ->groupBy(fn($a) => $a->context_id ?? 'none')
+            ->map(function ($items) {
+                $first = $items->first();
+                $context = $first->context;
+                return [
+                    'name' => $context?->name ?? 'Sem módulo',
+                    'color' => $context?->color ?? '#6366f1',
+                    'minutes' => $items->sum('duration_minutes'),
+                    'count' => $items->count(),
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    public function dailyBreakdown(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
         $start = $bounds['start'];
@@ -87,7 +153,7 @@ class ReportService
                 $isCurrentMonth = $dayDate->month === $start->month && $dayDate->year === $start->year;
 
                 if ($isCurrentMonth) {
-                    $activities = Activity::whereDate('started_at', $dayDate)->get();
+                    $activities = Activity::where('user_id', $userId)->whereDate('started_at', $dayDate)->get();
                     if ($includeInProgress) {
                         $activities = $this->fillInProgressDuration($activities, true);
                     }
@@ -126,10 +192,11 @@ class ReportService
         ];
     }
 
-    public function topActivities(bool $includeInProgress = false, ?Carbon $date = null): array
+    public function topActivities(int $userId, bool $includeInProgress = false, ?Carbon $date = null): array
     {
         $bounds = $this->monthBounds($date);
-        $query = Activity::where('started_at', '>=', $bounds['start'])
+        $query = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $bounds['start'])
             ->where('started_at', '<=', $bounds['end'])
             ->where('type', 'activity')
             ->with('category');
@@ -153,7 +220,7 @@ class ReportService
 
         return $activities->map(function ($a) {
             if ($a->duration_minutes === null && $a->status === 'in_progress' && $a->started_at) {
-                $a->duration_minutes = max(0, now()->diffInMinutes($a->started_at));
+                $a->duration_minutes = app(LunchBreakService::class)->getEffectiveDuration($a->started_at, now(), $a->user_id);
             }
             return $a;
         });
@@ -163,12 +230,14 @@ class ReportService
     {
         $dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-        $border = $darkMode ? '#374151' : '#e5e7eb';
-        $borderBottom = $darkMode ? '#374151' : '#f3f4f6';
-        $textDark = $darkMode ? '#f3f4f6' : '#111';
-        $textBody = $darkMode ? '#d1d5db' : '#333';
-        $textSecondary = $darkMode ? '#9ca3af' : '#666';
-        $textMuted = $darkMode ? '#4b5563' : '#ccc';
+        $border = $darkMode ? 'var(--report-border)' : '#e5e7eb';
+        $borderBottom = $darkMode ? 'var(--report-border-bottom)' : '#f3f4f6';
+        $textDark = $darkMode ? 'var(--report-text-dark)' : '#111';
+        $textBody = $darkMode ? 'var(--report-text-body)' : '#333';
+        $textSecondary = $darkMode ? 'var(--report-text-secondary)' : '#666';
+        $textMuted = $darkMode ? 'var(--report-text-muted)' : '#9ca3af';
+        $bgEven = $darkMode ? 'var(--report-bg-even)' : '#f9fafb';
+        $bgOdd = $darkMode ? 'var(--report-bg-odd)' : '#ffffff';
 
         $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse">';
 
@@ -180,7 +249,7 @@ class ReportService
         $html .= '</tr>';
 
         foreach ($data['weeks'] as $wi => $week) {
-            $bg = $darkMode ? ($wi % 2 === 0 ? '#1f2937' : '#111827') : ($wi % 2 === 0 ? '#f9fafb' : '#ffffff');
+            $bg = $wi % 2 === 0 ? $bgEven : $bgOdd;
             $html .= '<tr>';
             foreach ($week['days'] as $day) {
                 if ($day['is_current_month']) {
@@ -210,11 +279,13 @@ class ReportService
         $weekNumber = 1;
         $totalInterruptions = 0;
 
-        $border = $darkMode ? '#374151' : '#e5e7eb';
-        $borderBottom = $darkMode ? '#374151' : '#f3f4f6';
-        $textDark = $darkMode ? '#f3f4f6' : '#111';
-        $textBody = $darkMode ? '#d1d5db' : '#333';
-        $textSecondary = $darkMode ? '#9ca3af' : '#666';
+        $border = $darkMode ? 'var(--report-border)' : '#e5e7eb';
+        $borderBottom = $darkMode ? 'var(--report-border-bottom)' : '#f3f4f6';
+        $textDark = $darkMode ? 'var(--report-text-dark)' : '#111';
+        $textBody = $darkMode ? 'var(--report-text-body)' : '#333';
+        $textSecondary = $darkMode ? 'var(--report-text-secondary)' : '#666';
+        $bgEven = $darkMode ? 'var(--report-bg-even)' : '#f9fafb';
+        $bgOdd = $darkMode ? 'var(--report-bg-odd)' : '#ffffff';
 
         $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse">';
         $html .= '<tr>';
@@ -235,7 +306,7 @@ class ReportService
             $weekInterruptions = array_sum(array_column($daysInMonth, 'interruptions'));
             $totalInterruptions += $weekInterruptions;
 
-            $bg = $darkMode ? ($wi % 2 === 0 ? '#1f2937' : '#111827') : ($wi % 2 === 0 ? '#f9fafb' : '#ffffff');
+            $bg = $wi % 2 === 0 ? $bgEven : $bgOdd;
             $weekHours = round($week['total_minutes'] / 60, 1);
 
             $html .= '<tr>';
@@ -261,15 +332,17 @@ class ReportService
     public function buildTopActivitiesHtml(array $activities, int $totalMinutes, bool $darkMode = false): string
     {
         if (empty($activities)) {
-            $muted = $darkMode ? '#6b7280' : '#999';
+            $muted = $darkMode ? 'var(--report-text-muted)' : '#6b7280';
             return '<p style="font-size:13px;color:' . $muted . '">Nenhuma atividade registrada no período.</p>';
         }
 
-        $border = $darkMode ? '#374151' : '#e5e7eb';
-        $borderBottom = $darkMode ? '#374151' : '#f3f4f6';
-        $textDark = $darkMode ? '#f3f4f6' : '#111';
-        $textBody = $darkMode ? '#d1d5db' : '#333';
-        $textSecondary = $darkMode ? '#9ca3af' : '#666';
+        $border = $darkMode ? 'var(--report-border)' : '#e5e7eb';
+        $borderBottom = $darkMode ? 'var(--report-border-bottom)' : '#f3f4f6';
+        $textDark = $darkMode ? 'var(--report-text-dark)' : '#111';
+        $textBody = $darkMode ? 'var(--report-text-body)' : '#333';
+        $textSecondary = $darkMode ? 'var(--report-text-secondary)' : '#666';
+        $bgEven = $darkMode ? 'var(--report-bg-even)' : '#f9fafb';
+        $bgOdd = $darkMode ? 'var(--report-bg-odd)' : '#ffffff';
 
         $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px">';
         $html .= '<tr>';
@@ -280,7 +353,7 @@ class ReportService
         $html .= '<th style="padding:6px 8px;text-align:right;border-bottom:2px solid ' . $border . ';color:' . $textDark . ';font-size:12px">%</th>';
         $html .= '</tr>';
         foreach ($activities as $i => $a) {
-            $bg = $darkMode ? ($i % 2 === 0 ? '#1f2937' : '#111827') : ($i % 2 === 0 ? '#f9fafb' : '#ffffff');
+            $bg = $i % 2 === 0 ? $bgEven : $bgOdd;
             $pct = round(($a['duration_minutes'] / $totalMinutes) * 100);
             $hours = round($a['duration_minutes'] / 60, 1);
             $category = $a['category']['name'] ?? '-';

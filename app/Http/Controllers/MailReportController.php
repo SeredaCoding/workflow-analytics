@@ -19,8 +19,9 @@ class MailReportController extends Controller
     {
         $includeInProgress = $request->boolean('include_in_progress');
         $date = $this->parseMonth($request->input('month'));
+        $userId = auth()->id();
 
-        $settings = Setting::pluck('value', 'key');
+        $settings = Setting::where('user_id', $userId)->pluck('value', 'key');
 
         $bossEmail = $settings->get('boss_email');
         if (!$bossEmail) {
@@ -35,10 +36,10 @@ class MailReportController extends Controller
         $userName = $settings->get('user_name', '');
         $subject = $settings->get('report_subject', 'Relatório Mensal - {{month}}');
 
-        $monthly = $this->reportService->monthlyData($includeInProgress, $date);
-        $categoryDistribution = $this->reportService->categoryDistribution($includeInProgress, $date);
-        $dailyBreakdown = $this->reportService->dailyBreakdown($includeInProgress, $date);
-        $topActivities = $this->reportService->topActivities($includeInProgress, $date);
+        $monthly = $this->reportService->monthlyData($userId, $includeInProgress, $date);
+        $categoryDistribution = $this->reportService->categoryDistribution($userId, $includeInProgress, $date);
+        $dailyBreakdown = $this->reportService->dailyBreakdown($userId, $includeInProgress, $date);
+        $topActivities = $this->reportService->topActivities($userId, $includeInProgress, $date);
 
         $totalMinutes = $monthly['total_minutes'] ?: 1;
 
@@ -66,7 +67,7 @@ class MailReportController extends Controller
             $emailSubject = str_replace('{{' . $key . '}}', $value, $emailSubject);
         }
 
-        $csvContent = $this->generateCsv($includeInProgress, $date);
+        $csvContent = $this->generateCsv($includeInProgress, $date, $userId);
 
         try {
             $csvName = $userName ? 'relatorio-mensal-' . \Illuminate\Support\Str::slug($userName) . '-' . $date->format('m-Y') . '.csv' : 'relatorio-mensal.csv';
@@ -101,14 +102,16 @@ class MailReportController extends Controller
         return $html . '</table>';
     }
 
-    private function generateCsv(bool $includeInProgress = false, ?\Carbon\Carbon $date = null): string
+    private function generateCsv(bool $includeInProgress = false, ?\Carbon\Carbon $date = null, ?int $userId = null): string
     {
         $d = $date ?? now();
-        $activities = Activity::where('started_at', '>=', $d->copy()->startOfMonth())
+        $query = Activity::where('user_id', $userId)
+            ->where('started_at', '>=', $d->copy()->startOfMonth())
             ->where('started_at', '<=', $d->copy()->endOfMonth())
             ->with('category', 'project')
-            ->orderBy('started_at', 'desc')
-            ->get();
+            ->orderBy('started_at', 'desc');
+
+        $activities = $query->get();
 
         if ($includeInProgress) {
             $activities = $this->reportService->fillInProgressDuration($activities, true);
@@ -118,7 +121,7 @@ class MailReportController extends Controller
 
         fputcsv($handle, [
             'Título', 'Categoria', 'Projeto', 'Tipo', 'Status',
-            'Início', 'Fim', 'Duração (min)', 'Descrição', 'Prioridade', 'Energia',
+            'Início', 'Fim', 'Duração (min)', 'Descrição', 'Prioridade', 'Dificuldade',
         ]);
 
         foreach ($activities as $a) {
@@ -140,7 +143,7 @@ class MailReportController extends Controller
                 $duration,
                 $a->description ?? '',
                 $a->priority ?? '',
-                $a->energy_level ?? '',
+                $this->getDifficultyLabel($a->energy_level),
             ]);
         }
 
@@ -149,5 +152,17 @@ class MailReportController extends Controller
         fclose($handle);
 
         return $content;
+    }
+
+    private function getDifficultyLabel(?int $level): string
+    {
+        return match ($level) {
+            1 => 'Muito Fácil',
+            2 => 'Fácil',
+            3 => 'Normal',
+            4 => 'Difícil',
+            5 => 'Muito Difícil',
+            default => '',
+        };
     }
 }

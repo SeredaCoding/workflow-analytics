@@ -2,56 +2,54 @@
 
 namespace App\Providers;
 
-use App\Models\Setting;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
+        URL::forceRootUrl(config('app.url'));
+
+        if (parse_url(config('app.url'), PHP_URL_SCHEME) === 'https') {
+            URL::forceScheme('https');
+        }
+
         Vite::prefetch(concurrency: 3);
 
-        try {
-            $settings = Setting::pluck('value', 'key');
+        ResetPassword::toMailUsing(function ($notifiable, $token) {
+            $url = url(route('password.reset', [
+                'token' => $token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ], false));
 
-            if ($host = $settings->get('mail_host')) {
-                config()->set('mail.mailers.smtp.host', $host);
-            }
-            if ($port = $settings->get('mail_port')) {
-                config()->set('mail.mailers.smtp.port', (int) $port);
-            }
-            if ($username = $settings->get('mail_username')) {
-                config()->set('mail.mailers.smtp.username', $username);
-            }
-            if ($password = $settings->get('mail_password')) {
-                config()->set('mail.mailers.smtp.password', $password);
-            }
-            if ($encryption = $settings->get('mail_encryption')) {
-                config()->set('mail.mailers.smtp.encryption', $encryption);
-            }
-            if ($fromAddress = $settings->get('mail_from_address')) {
-                config()->set('mail.from.address', $fromAddress);
-            }
-            if ($fromName = $settings->get('mail_from_name')) {
-                config()->set('mail.from.name', $fromName);
-            }
-            if ($host) {
-                config()->set('mail.default', 'smtp');
-            }
-        } catch (\Exception $e) {
-            // settings table may not exist yet
-        }
+            $expire = config('auth.passwords.' . config('auth.defaults.passwords') . '.expire');
+
+            return (new MailMessage)
+                ->subject('Redefinir sua senha')
+                ->greeting('Olá!')
+                ->line('Você está recebendo este e-mail porque recebemos uma solicitação de redefinição de senha para sua conta.')
+                ->action('Redefinir senha', $url)
+                ->line('Este link de redefinição expirará em ' . $expire . ' minutos.')
+                ->line('Se você não solicitou uma redefinição de senha, ignore este e-mail.');
+        });
+
+        VerifyEmail::toMailUsing(function ($notifiable, $url) {
+            return (new MailMessage)
+                ->subject('Verifique seu endereço de e-mail')
+                ->greeting('Olá!')
+                ->line('Clique no botão abaixo para verificar seu endereço de e-mail.')
+                ->action('Verificar e-mail', $url)
+                ->line('Se você não criou uma conta, ignore este e-mail.');
+        });
     }
 }

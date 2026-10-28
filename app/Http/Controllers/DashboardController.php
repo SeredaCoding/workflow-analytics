@@ -11,9 +11,9 @@ class DashboardController extends Controller
     public function index()
     {
         $today = today();
-        $now = now();
+        $userId = auth()->id();
 
-        $activitiesToday = Activity::whereDate('started_at', $today)->get();
+        $activitiesToday = Activity::where('user_id', $userId)->whereDate('started_at', $today)->get();
 
         $totalMinutes = $activitiesToday->sum('duration_minutes');
         $interruptions = $activitiesToday->where('type', 'interruption');
@@ -21,12 +21,12 @@ class DashboardController extends Controller
         $support = $activitiesToday->whereIn('type', ['activity'])->filter(fn($a) => $a->category?->type === 'support');
         $meetings = $activitiesToday->whereIn('type', ['activity'])->filter(fn($a) => $a->category?->type === 'meeting');
 
-        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $inProgress = Activity::where('user_id', $userId)->inProgress()->latest('started_at')->with(['category', 'project', 'context'])->first();
 
         $threeDaysAgo = today()->subDays(2);
 
-        $timeline = Activity::whereDate('started_at', '>=', $threeDaysAgo)
-            ->with(['category', 'project'])
+        $timeline = Activity::where('user_id', $userId)->whereDate('started_at', '>=', $threeDaysAgo)
+            ->with(['category', 'project', 'context'])
             ->orderBy('started_at', 'desc')
             ->get()
             ->map(fn($a) => [
@@ -37,6 +37,7 @@ class DashboardController extends Controller
                 'category' => $a->category?->name,
                 'category_color' => $a->category?->color,
                 'project' => $a->project?->name,
+                'context' => $a->context?->name,
                 'started_at' => $a->started_at->toIso8601String(),
                 'ended_at' => $a->ended_at?->toIso8601String(),
                 'duration' => $a->duration_minutes,
@@ -53,16 +54,6 @@ class DashboardController extends Controller
                 'support_minutes' => $support->sum('duration_minutes'),
                 'meeting_minutes' => $meetings->sum('duration_minutes'),
             ],
-            'inProgress' => $inProgress ? [
-                'id' => $inProgress->id,
-                'title' => $inProgress->title,
-                'type' => $inProgress->type,
-                'parent_id' => $inProgress->parent_id,
-                'category' => $inProgress->category?->name,
-                'category_color' => $inProgress->category?->color,
-                'project' => $inProgress->project?->name,
-                'started_at' => $inProgress->started_at->toIso8601String(),
-            ] : null,
             'timeline' => $timeline,
         ]);
     }

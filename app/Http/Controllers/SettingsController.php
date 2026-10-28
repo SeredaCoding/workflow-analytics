@@ -11,44 +11,29 @@ class SettingsController extends Controller
 {
     public function index()
     {
-        $settings = Setting::pluck('value', 'key');
+        $settings = Setting::where('user_id', auth()->id())->pluck('value', 'key');
 
-        $inProgress = Activity::inProgress()->latest('started_at')->with(['category', 'project'])->first();
+        $inProgress = Activity::where('user_id', auth()->id())->inProgress()->latest('started_at')->with(['category', 'project'])->first();
 
         return Inertia::render('Settings', [
             'settings' => $settings,
-            'inProgress' => $inProgress ? [
-                'id' => $inProgress->id,
-                'title' => $inProgress->title,
-                'type' => $inProgress->type,
-                'parent_id' => $inProgress->parent_id,
-                'category' => $inProgress->category?->name,
-                'category_color' => $inProgress->category?->color,
-                'project' => $inProgress->project?->name,
-                'started_at' => $inProgress->started_at->toIso8601String(),
-            ] : null,
         ]);
     }
 
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'mail_host' => 'nullable|string|max:255',
-            'mail_port' => 'nullable|string|max:10',
-            'mail_username' => 'nullable|string|max:255',
-            'mail_password' => 'nullable|string|max:255',
-            'mail_encryption' => 'nullable|string|max:50',
-            'mail_from_address' => 'nullable|email|max:255',
-            'mail_from_name' => 'nullable|string|max:255',
             'user_name' => 'nullable|string|max:255',
             'boss_email' => 'nullable|email|max:255',
             'report_subject' => 'nullable|string|max:255',
             'report_template' => 'nullable|string',
+            'lunch_start' => 'nullable|date_format:H:i|required_with:lunch_end',
+            'lunch_end' => 'nullable|date_format:H:i|required_with:lunch_start|after:lunch_start',
         ]);
 
         foreach ($validated as $key => $value) {
             Setting::updateOrCreate(
-                ['key' => $key],
+                ['user_id' => auth()->id(), 'key' => $key],
                 ['value' => $value ?? ''],
             );
         }
